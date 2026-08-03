@@ -1,0 +1,136 @@
+{% load static %}
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Whisper Line - Leader Inbox</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-fixed": "#ccebc7", "primary-fixed": "#d2e4fb",
+              "on-primary-fixed": "#0b1d2d", "tertiary": "#141614",
+              "tertiary-container": "#292a28", "surface-container-lowest": "#ffffff",
+              "outline-variant": "#c4c6cd", "on-error": "#ffffff",
+              "error-container": "#ffdad6", "surface-container-low": "#f0f3ff",
+              "tertiary-fixed-dim": "#c7c6c4", "on-tertiary": "#ffffff",
+              "on-tertiary-container": "#91918f", "outline": "#74777d",
+              "surface-container-highest": "#d8e3fa", "on-tertiary-fixed-variant": "#464745",
+              "on-secondary-container": "#506b4f", "surface-variant": "#d8e3fa",
+              "surface-container-high": "#dee8ff", "on-secondary-fixed": "#07200b",
+              "on-secondary": "#ffffff", "on-primary-fixed-variant": "#38485a",
+              "on-primary-container": "#8192a7", "on-error-container": "#93000a",
+              "inverse-surface": "#263142", "error": "#ba1a1a", "tertiary-fixed": "#e3e2e0",
+              "surface-bright": "#f9f9ff", "inverse-primary": "#b7c8de", "secondary": "#4a6549",
+              "on-surface-variant": "#44474c", "on-tertiary-fixed": "#1a1c1a",
+              "on-primary": "#ffffff", "secondary-container": "#ccebc7",
+              "on-background": "#111c2c", "surface": "#f9f9ff",
+              "inverse-on-surface": "#ebf1ff", "background": "#f9f9ff",
+              "primary-container": "#1a2b3c", "surface-dim": "#cfdaf1",
+              "on-secondary-fixed-variant": "#334d33", "primary": "#041627",
+              "primary-fixed-dim": "#b7c8de", "on-surface": "#111c2c",
+              "surface-tint": "#4f6073", "surface-container": "#e7eeff",
+              "secondary-fixed-dim": "#b0cfad"
+            },
+            borderRadius: { DEFAULT: "1rem", lg: "2rem", xl: "3rem", full: "9999px" },
+            spacing: {
+              "stack-sm": "12px", "stack-lg": "48px", "container-max": "1200px",
+              "stack-md": "24px", "gutter": "24px", "unit": "8px",
+              "margin-desktop": "64px", "margin-mobile": "20px"
+            },
+            fontFamily: {
+              "display-lg": ["Quicksand"], "title-md": ["Quicksand"], "headline-lg": ["Quicksand"],
+              "caption": ["Quicksand"], "label-sm": ["Quicksand"], "headline-lg-mobile": ["Quicksand"],
+              "body-md": ["Quicksand"], "body-lg": ["Quicksand"]
+            },
+            fontSize: {
+              "display-lg": ["40px", {lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700"}],
+              "title-md": ["20px", {lineHeight: "28px", fontWeight: "600"}],
+              "headline-lg": ["32px", {lineHeight: "40px", fontWeight: "600"}],
+              "caption": ["12px", {lineHeight: "16px", fontWeight: "500"}],
+              "label-sm": ["14px", {lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "600"}],
+              "headline-lg-mobile": ["24px", {lineHeight: "32px", fontWeight: "600"}],
+              "body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}],
+              "body-lg": ["18px", {lineHeight: "28px", fontWeight: "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+  body { font-family: 'Quicksand', sans-serif; background-color: #f9f9ff; -webkit-font-smoothing: antialiased; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; display: inline-block; vertical-align: middle; }
+  .message-preview { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .glass-header { background: rgba(249, 249, 255, 0.8); backdrop-filter: blur(12px); }
+  .thread-item:active { transform: scale(0.98); }
+  .presence-dot { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; border: 2px solid white; border-radius: 50%; }
+</style>
+</head>
+<body class="text-on-surface">
+<header class="glass-header fixed top-0 w-full z-50 transition-all duration-200">
+  <div class="flex items-center justify-between px-margin-mobile h-16 w-full max-w-container-max mx-auto">
+    <h1 class="font-title-md text-title-md text-primary">Whisper Line</h1>
+    <div class="flex items-center gap-4">
+      <span class="font-label-sm text-label-sm text-on-surface-variant">{{ leader.name }}</span>
+      <a href="{% url 'logout' %}" class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" title="Sign out">logout</a>
+    </div>
+  </div>
+</header>
+
+<main class="pt-24 pb-16 px-margin-mobile max-w-[720px] mx-auto min-h-screen">
+  <section class="mb-stack-md">
+    <div class="bg-secondary-container/20 border border-secondary/10 rounded-lg p-4 flex items-start gap-3">
+      <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+      <div>
+        <p class="font-label-sm text-label-sm text-secondary font-bold">Conversations</p>
+        <p class="font-caption text-caption text-on-surface-variant">Every sender here is anonymous. Their identity is never visible to you.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="space-y-stack-sm">
+    {% for conv in conversations %}
+    <a href="{% url 'leader_chat' conv.id %}" class="thread-item group block bg-white p-4 rounded-lg shadow-[0_10px_30px_rgba(26,43,60,0.05)] border border-primary/5 hover:border-secondary/20 transition-all duration-200">
+      <div class="flex gap-4">
+        <div class="relative flex-shrink-0">
+          <div class="w-14 h-14 rounded-full bg-surface-container-highest flex items-center justify-center">
+            <span class="material-symbols-outlined text-primary text-[24px]">person</span>
+          </div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between items-start mb-1">
+            <h3 class="font-title-md text-title-md text-primary truncate">Anonymous {{ conv.anonymous.id|slice:"-4" }}</h3>
+            <span class="font-caption text-caption {% if conv.unread_count %}text-secondary font-bold{% else %}text-on-surface-variant{% endif %} whitespace-nowrap">
+              {% if conv.last_message_created_at %}{{ conv.last_message_created_at|timesince }} ago{% else %}{{ conv.created_at|timesince }} ago{% endif %}
+            </span>
+          </div>
+          <div class="flex items-center justify-between">
+            <p class="font-body-md text-body-md message-preview {% if conv.unread_count %}text-on-surface-variant font-semibold{% else %}text-on-surface-variant/70{% endif %}">
+              {% if conv.last_message_body %}{{ conv.last_message_body|truncatechars:50 }}{% else %}No messages yet{% endif %}
+            </p>
+            {% if conv.unread_count %}
+            <span class="ml-2 flex-shrink-0 min-w-[20px] h-5 px-1.5 bg-secondary text-white text-[11px] font-bold rounded-full flex items-center justify-center">{{ conv.unread_count }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </a>
+    {% empty %}
+    <div class="text-center py-stack-lg">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-container-low flex items-center justify-center">
+        <span class="material-symbols-outlined text-4xl text-on-surface-variant/30">chat_bubble</span>
+      </div>
+      <h3 class="font-title-md text-title-md text-primary mb-2">No conversations yet</h3>
+      <p class="font-body-md text-body-md text-on-surface-variant max-w-xs mx-auto">When someone reaches out to the line, their message will appear here. Thank you for being a supportive presence.</p>
+    </div>
+    {% endfor %}
+  </div>
+</main>
+</body>
+</html>
