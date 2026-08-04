@@ -58,11 +58,12 @@ def chat_room(request, leader_id):
     ws_url = f"{ws_scheme}://{request.get_host()}/ws/chat/{conv.id}/anon/"
 
     return render(request, 'message.html', {
-        'leader': leader,
-        'conversation': conv,
-        'messages': messages,
-        'ws_url': ws_url,
-    })
+    'leader': leader,
+    'conversation': conv,
+    'messages': messages,
+    'ws_url': ws_url,
+    'viewer_role': 'anon',
+})
 
 
 @require_POST
@@ -151,12 +152,12 @@ def leader_chat(request, conv_id):
     ws_url = f"{ws_scheme}://{request.get_host()}/ws/chat/{conv.id}/leader/"
 
     return render(request, 'message.html', {
-        'leader': leader,
-        'conversation': conv,
-        'messages': conv.messages.all(),
-        'ws_url': ws_url,
-    })
-
+    'leader': leader,
+    'conversation': conv,
+    'messages': conv.messages.all(),
+    'ws_url': ws_url,
+    'viewer_role': 'leader',
+})
 
 def leader_logout(request):
     request.session.flush()

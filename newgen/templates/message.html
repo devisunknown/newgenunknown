@@ -201,6 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     const wsUrl = "{{ ws_url }}";
+    const viewerRole = "{{ viewer_role }}";
 
 
     let socket;
@@ -240,21 +241,15 @@ document.addEventListener("DOMContentLoaded", () => {
             switch(data.type){
 
 
-                case "message":
+            case "message":
 
+    if (!data.is_me) {
+        appendMessage(data);
+    }
 
-                    // Only render messages from other person
-                    if(data.sender_is_leader){
+    hideTyping();
 
-                        appendMessage(data);
-
-                    }
-
-
-                    hideTyping();
-
-                    break;
-
+    break;
 
 
                 case "typing":

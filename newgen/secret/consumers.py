@@ -172,30 +172,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def chat_message(self, event):
 
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "message",
-
-                    "message": event["message"],
-
-                    "sender_type": event["sender_type"],
-
-                    "sender_name": event["sender_name"],
-
-                    "timestamp": event["timestamp"],
-
-                    "message_id": event["message_id"],
-
-                    "sender_is_leader": event["sender_is_leader"],
-
-                    "is_me":
-                    event["sender_is_leader"]
-                    == self.is_leader,
-                }
-            )
-        )
-
+       await self.send(text_data=json.dumps({
+       "type": "message",
+       "message": event["message"],
+       "sender_type": event["sender_type"],
+       "sender_name": event["sender_name"],
+       "timestamp": event["timestamp"],
+       "message_id": event["message_id"],
+       "sender_is_leader": event["sender_is_leader"],
+       "is_me": (
+           event["sender_is_leader"] == self.is_leader
+    ),
+}))
 
 
     async def typing_indicator(self,event):
