@@ -1,0 +1,48 @@
+services:
+  # --- Web service: Django + Channels, served via Daphne (ASGI, required for WebSockets) ---
+  - type: web
+    name: whisperline-web
+    runtime: python
+    plan: starter          # free tier sleeps on inactivity, which kills open WebSocket connections — use starter for anything real
+    region: oregon          # pick whichever region is closest to your users
+    branch: main
+    buildCommand: >
+      pip install -r requirements.txt &&
+      python manage.py collectstatic --noinput &&
+      python manage.py migrate
+    startCommand: daphne -b 0.0.0.0 -p $PORT newgen.asgi:application
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.4        # matches the .python-version pin you already use for Django 5.0.6 compatibility
+      - key: DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true   # Render generates and stores a real secret for you, no need to set it yourself
+      - key: ALLOWED_HOSTS
+        value: whisperline-web.onrender.com   # update to your actual .onrender.com URL or custom domain
+      - key: DATABASE_URL
+        fromDatabase:
+          name: whisperline-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: whisperline-redis
+          property: connectionString
+
+  # --- Redis: pub/sub backbone for Channels (NOT your data store — Postgres is) ---
+  - type: redis
+    name: whisperline-redis
+    plan: free
+    region: oregon
+    ipAllowList: []          # empty = only accessible from other services in this Render project, not the public internet
+    maxmemoryPolicy: noeviction
+
+databases:
+  # --- Postgres: your actual data (Leader, Anonymous, Conversation, Message) ---
+  - name: whisperline-db
+    plan: starter            # free Postgres expires after 90 days and caps connections hard — fine to start on, but plan to move to starter before real traffic
+    region: oregon
+    databaseName: newgen
+    user: newgen
