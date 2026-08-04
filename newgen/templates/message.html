@@ -189,321 +189,583 @@
 </footer>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const chatContainer = document.getElementById('chat-container');
-    const messagesArea = document.getElementById('messages-area');
-    const textarea = document.getElementById('message-input');
-    const sendBtn = document.getElementById('send-btn');
-    const typingIndicator = document.getElementById('typing-indicator');
-    const typingLabel = document.getElementById('typing-label');
+document.addEventListener("DOMContentLoaded", () => {
 
-    const wsUrl = '{{ ws_url }}';
+    const chatContainer = document.getElementById("chat-container");
+    const messagesArea = document.getElementById("messages-area");
+    const textarea = document.getElementById("message-input");
+    const sendBtn = document.getElementById("send-btn");
 
-    let socket = null;
-    let typingTimeout = null;
+    const typingIndicator = document.getElementById("typing-indicator");
+    const typingLabel = document.getElementById("typing-label");
+
+
+    const wsUrl = "{{ ws_url }}";
+
+
+    let socket;
     let reconnectAttempts = 0;
     let manuallyClosed = false;
 
-    function connectWebSocket() {
-        console.log("Connecting WebSocket...");
+    let typingTimer;
+    let typingActive = false;
+
+
+    /*
+        WEBSOCKET CONNECTION
+    */
+
+    function connectWebSocket(){
 
         socket = new WebSocket(wsUrl);
 
+
         socket.onopen = () => {
-            console.log("Connected to Whisper Line");
+
+            console.log("WebSocket connected");
+
             reconnectAttempts = 0;
+
         };
 
 
-        socket.onmessage = (event) => {
+
+        socket.onmessage = (event)=>{
+
+
             const data = JSON.parse(event.data);
 
-            switch(data.type) {
+
+
+            switch(data.type){
+
 
                 case "message":
-                    appendMessage(data);
+
+
+                    // Only render messages from other person
+                    if(data.sender_is_leader){
+
+                        appendMessage(data);
+
+                    }
+
+
                     hideTyping();
+
                     break;
+
 
 
                 case "typing":
-                    if (data.is_typing) {
-                        typingLabel.textContent = "Leader is typing...";
-                        typingIndicator.style.display = "flex";
 
-                        chatContainer.scrollTo({
-                            top: chatContainer.scrollHeight,
-                            behavior: "smooth"
-                        });
 
-                    } else {
+                    if(data.is_typing){
+
+                        typingLabel.textContent =
+                        "Leader is typing...";
+
+
+                        typingIndicator.style.display="flex";
+
+
+                    }else{
+
                         hideTyping();
+
                     }
+
+
                     break;
+
 
 
                 case "online":
-                    console.log("Leader is online");
+
+                    console.log("Leader online");
+
                     break;
+
 
 
                 case "offline":
-                    console.log("Leader is offline");
+
+                    console.log("Leader offline");
+
                     break;
+
             }
+
+
         };
 
 
-        socket.onerror = (error) => {
-            console.error("WebSocket error:", error);
+
+        socket.onerror=(error)=>{
+
+            console.error(
+                "Websocket error",
+                error
+            );
+
         };
 
 
-        socket.onclose = () => {
 
-            console.log("WebSocket disconnected");
 
-            if (!manuallyClosed) {
+        socket.onclose=()=>{
 
-                if (reconnectAttempts < 10) {
 
-                    reconnectAttempts++;
+            if(manuallyClosed)
+                return;
 
-                    const delay = Math.min(
-                        reconnectAttempts * 3000,
-                        15000
-                    );
 
-                    console.log(
-                        `Reconnecting in ${delay / 1000}s...`
-                    );
 
-                    setTimeout(() => {
-                        connectWebSocket();
-                    }, delay);
+            reconnectAttempts++;
 
-                } else {
-                    console.log(
-                        "Stopped reconnecting after multiple failures"
-                    );
-                }
+
+            if(reconnectAttempts <= 10){
+
+
+                const delay =
+                Math.min(
+                    reconnectAttempts * 2000,
+                    15000
+                );
+
+
+                setTimeout(
+                    connectWebSocket,
+                    delay
+                );
+
+
             }
+
+
         };
+
+
     }
+
 
 
     connectWebSocket();
 
 
 
-    // SEND MESSAGE
-    sendBtn.addEventListener('click', () => {
-
-        const text = textarea.value.trim();
-
-        if (!text) return;
 
 
-        if (!socket || socket.readyState !== WebSocket.OPEN) {
-            console.log("Socket not connected");
+    /*
+        SEND MESSAGE
+    */
+
+
+    sendBtn.addEventListener(
+        "click",
+        sendMessage
+    );
+
+
+
+    function sendMessage(){
+
+
+        const text =
+        textarea.value.trim();
+
+
+
+        if(!text)
             return;
+
+
+
+        if(
+            !socket ||
+            socket.readyState !== WebSocket.OPEN
+        ){
+
+            return;
+
         }
 
 
+
+
+        /*
+            INSTANT UI UPDATE
+        */
+
+
+        appendMessage({
+
+            sender_is_leader:false,
+
+            sender_name:
+            "You (Anonymous)",
+
+            message:text,
+
+            timestamp:getTime()
+
+        });
+
+
+
+
+
+        /*
+            SEND TO SERVER
+        */
+
+
         socket.send(JSON.stringify({
-            type: "message",
-            message: text
+
+            type:"message",
+
+            message:text
+
         }));
 
 
-        textarea.value = "";
-        textarea.style.height = "auto";
+
+
+        textarea.value="";
+
+        textarea.style.height="auto";
+
 
         stopTyping();
-    });
+
+
+    }
 
 
 
-    // ENTER TO SEND
-    textarea.addEventListener('keypress', (event) => {
 
-        if(event.key === "Enter" && !event.shiftKey){
 
-            event.preventDefault();
 
-            sendBtn.click();
+    /*
+        ENTER SEND
+    */
+
+
+    textarea.addEventListener(
+        "keypress",
+        e=>{
+
+
+            if(
+                e.key==="Enter" &&
+                !e.shiftKey
+            ){
+
+                e.preventDefault();
+
+                sendMessage();
+
+            }
+
+
         }
-
-    });
-
+    );
 
 
-    // TYPING INDICATOR
-    textarea.addEventListener('input', () => {
 
-        if(!socket || socket.readyState !== WebSocket.OPEN){
-            return;
+
+
+
+
+
+    /*
+        TYPING SYSTEM
+    */
+
+
+    textarea.addEventListener(
+        "input",
+        ()=>{
+
+
+            if(
+                !socket ||
+                socket.readyState !== WebSocket.OPEN
+            )
+                return;
+
+
+
+            if(!typingActive){
+
+
+                socket.send(JSON.stringify({
+
+                    type:"typing",
+
+                    is_typing:true
+
+                }));
+
+
+                typingActive=true;
+
+            }
+
+
+
+
+
+            clearTimeout(
+                typingTimer
+            );
+
+
+
+            typingTimer=setTimeout(()=>{
+
+
+                stopTyping();
+
+
+            },1500);
+
+
+
         }
+    );
 
 
-        socket.send(JSON.stringify({
-            type:"typing",
-            is_typing:true
-        }));
-
-
-        clearTimeout(typingTimeout);
-
-
-        typingTimeout = setTimeout(() => {
-
-            stopTyping();
-
-        },2000);
-
-    });
 
 
 
     function stopTyping(){
 
-        if(socket && socket.readyState === WebSocket.OPEN){
+
+        if(
+            socket &&
+            socket.readyState === WebSocket.OPEN &&
+            typingActive
+        ){
+
 
             socket.send(JSON.stringify({
+
                 type:"typing",
+
                 is_typing:false
+
             }));
 
+
+            typingActive=false;
+
+
         }
+
+
     }
+
+
+
+
+
+
+
+
+
+    /*
+        ADD MESSAGE TO UI
+    */
+
+
+    function appendMessage(data){
+
+
+
+        const wrapper =
+        document.createElement("div");
+
+
+
+        const isLeader =
+        data.sender_is_leader;
+
+
+
+        wrapper.className =
+        "flex flex-col gap-1 fade-in "
+        +
+        (
+            isLeader
+            ?
+            "items-start"
+            :
+            "items-end"
+        );
+
+
+
+
+
+        wrapper.innerHTML = isLeader
+        ?
+
+        `
+
+        <div class="flex items-center gap-2 mb-1">
+
+            <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+
+                <span class="material-symbols-outlined text-white text-[14px]">
+                verified_user
+                </span>
+
+            </div>
+
+
+            <span class="font-label-sm text-primary">
+                ${escapeHtml(data.sender_name)}
+            </span>
+
+
+        </div>
+
+
+
+        <div class="message-bubble bg-white border rounded-lg px-4 py-3">
+
+            <p>
+            ${escapeHtml(data.message)}
+            </p>
+
+        </div>
+
+
+
+        <span class="font-caption">
+            ${data.timestamp}
+        </span>
+
+
+        `
+
+
+
+        :
+
+        `
+
+
+        <div class="flex items-center gap-2 mb-1">
+
+
+            <span class="font-label-sm text-secondary">
+
+                You (Anonymous)
+
+            </span>
+
+
+
+            <div class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center">
+
+                <span class="material-symbols-outlined">
+                cloud
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+
+
+        <div class="message-bubble bg-secondary text-white rounded-lg px-4 py-3">
+
+
+            <p>
+
+            ${escapeHtml(data.message)}
+
+            </p>
+
+
+        </div>
+
+
+
+
+        <span class="font-caption">
+
+            ${data.timestamp}
+
+        </span>
+
+
+        `;
+
+
+
+        messagesArea.insertBefore(
+            wrapper,
+            typingIndicator
+        );
+
+
+
+        // instant scroll
+
+        chatContainer.scrollTop =
+        chatContainer.scrollHeight;
+
+
+    }
+
+
+
+
+
 
 
 
     function hideTyping(){
 
-        typingIndicator.style.display = "none";
+        typingIndicator.style.display="none";
 
     }
 
 
 
-    function appendMessage(data){
-
-        const div = document.createElement("div");
-
-        const isLeader = data.sender_is_leader;
-
-
-        div.className =
-            "flex flex-col gap-1 fade-in " +
-            (isLeader ? "items-start" : "items-end");
 
 
 
-        if(isLeader){
+    function getTime(){
 
-            div.innerHTML = `
-
-            <div class="flex items-center gap-2 mb-1">
-
-                <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-
-                    <span class="material-symbols-outlined text-[14px] text-white">
-                        verified_user
-                    </span>
-
-                </div>
-
-                <span class="font-label-sm text-primary">
-                    ${escapeHtml(data.sender_name)}
-                </span>
-
-            </div>
-
-
-            <div class="message-bubble bg-white border border-primary/5 rounded-lg px-4 py-3">
-
-                <p class="font-body-md text-on-surface">
-                    ${escapeHtml(data.message)}
-                </p>
-
-            </div>
-
-
-            <span class="font-caption text-on-surface-variant/50">
-                ${data.timestamp}
-            </span>
-
-            `;
-
-
-        } else {
-
-
-            div.innerHTML = `
-
-            <div class="flex items-center gap-2 mb-1">
-
-                <span class="font-label-sm text-secondary">
-                    ${escapeHtml(data.sender_name || "You (Anonymous)")}
-                </span>
-
-
-                <div class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center">
-
-                    <span class="material-symbols-outlined text-[14px]">
-                        cloud
-                    </span>
-
-                </div>
-
-            </div>
-
-
-
-            <div class="message-bubble bg-secondary text-white rounded-lg px-4 py-3">
-
-                <p class="font-body-md">
-                    ${escapeHtml(data.message)}
-                </p>
-
-            </div>
-
-
-            <span class="font-caption text-on-surface-variant/50">
-                ${data.timestamp}
-            </span>
-
-            `;
-
-        }
-
-
-
-        messagesArea.insertBefore(
-            div,
-            typingIndicator
+        return new Date()
+        .toLocaleTimeString(
+            [],
+            {
+                hour:"2-digit",
+                minute:"2-digit"
+            }
         );
 
-
-        chatContainer.scrollTo({
-
-            top: chatContainer.scrollHeight,
-
-            behavior:"smooth"
-
-        });
-
     }
+
 
 
 
 
     function escapeHtml(text){
 
-        const div=document.createElement("div");
+        const div =
+        document.createElement("div");
+
 
         div.textContent=text;
+
 
         return div.innerHTML;
 
@@ -511,22 +773,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-    // Scroll to latest messages on load
+
+
+
+
     chatContainer.scrollTop =
-        chatContainer.scrollHeight;
+    chatContainer.scrollHeight;
 
 
 
-    // Close socket cleanly when leaving page
-    window.addEventListener("beforeunload",()=>{
 
-        manuallyClosed=true;
 
-        if(socket){
-            socket.close();
+
+
+    window.addEventListener(
+        "beforeunload",
+        ()=>{
+
+
+            manuallyClosed=true;
+
+
+            if(socket){
+
+                socket.close();
+
+            }
+
+
         }
+    );
 
-    });
 
 });
 </script>
