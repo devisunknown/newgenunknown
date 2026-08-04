@@ -237,6 +237,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = JSON.parse(event.data);
 
 
+           console.log("LIVE MESSAGE:", data);
+
+
 
             switch(data.type){
 
@@ -388,24 +391,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-        /*
-            INSTANT UI UPDATE
-        */
-
+      
+        // INSTANT UI UPDATE
 
         appendMessage({
 
-            sender_is_leader:false,
+             sender_type: viewerRole,
+         
+             sender_is_leader: viewerRole === "leader",
+         
+             message: text,
+         
+             timestamp: getTime()
+         
+           });
 
-            sender_name:
-            "You (Anonymous)",
 
-            message:text,
-
-            timestamp:getTime()
-
-        });
-
+        
 
 
 
@@ -567,8 +569,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-
-
     /*
         ADD MESSAGE TO UI
     */
@@ -583,9 +583,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-        const isLeader =
-        data.sender_is_leader;
-
+        const isLeader = data.sender_type === "leader";
 
 
         wrapper.className =
