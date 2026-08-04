@@ -1,16 +1,21 @@
 services:
   # --- Web service: Django + Channels, served via Daphne (ASGI, required for WebSockets) ---
+  services:
   - type: web
     name: whisperline-web
     runtime: python
-    plan: starter          # free tier sleeps on inactivity, which kills open WebSocket connections — use starter for anything real
-    region: oregon          # pick whichever region is closest to your users
+    plan: starter
+    region: oregon
     branch: main
-    buildCommand: >
-      pip install -r requirements.txt &&
-      python manage.py collectstatic --noinput &&
-      python manage.py migrate
-    startCommand: daphne -b 0.0.0.0 -p $PORT newgen.asgi:application
+    rootDir: newgen
+
+    buildCommand: |
+      pip install -r ../requirements.txt
+      python manage.py collectstatic --no-input
+
+    startCommand: |
+      daphne newgen.asgi:application
+      
     healthCheckPath: /
     envVars:
       - key: PYTHON_VERSION
