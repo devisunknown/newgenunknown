@@ -97,16 +97,12 @@ DATABASES = {
     'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'), conn_max_age=60)
 } 
 
-
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [
-                {
-                    "address": os.environ.get("REDIS_URL"),
-                    "ssl": True,
-                }
+                os.environ.get("REDIS_URL")
             ],
         },
     },
