@@ -114,10 +114,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 
         sender_name = (
-            await self.get_leader_name()
+           await self.get_leader_name()
             if self.is_leader
-            else "You (Anonymous)"
-        )
+             else None
+            )
 
 
         timestamp = timezone.now().strftime("%I:%M %p")
