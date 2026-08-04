@@ -45,4 +45,4 @@ databases:
     plan: starter            # free Postgres expires after 90 days and caps connections hard — fine to start on, but plan to move to starter before real traffic
     region: oregon
     databaseName: newgen
-    user: newgen
+    user: newgenf
