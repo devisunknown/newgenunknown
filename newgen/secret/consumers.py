@@ -149,7 +149,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 
     # Save after sending
-    await self.save_message(body, sender_type)
+     await self.save_message(body, sender_type)
     # ========== EVENT HANDLERS ==========
 
     async def chat_message(self, event):
