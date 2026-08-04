@@ -2,6 +2,7 @@ from django.db import models
 import uuid
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
+from cloudinary.models import CloudinaryField
 
 
 class Leader(models.Model):
@@ -13,6 +14,7 @@ class Leader(models.Model):
     bio = models.TextField(blank=True, default="Here to listen and support you.")
     is_online = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    photo = CloudinaryField('image', blank=True, null=True, folder='whisperline/leaders')
 
     def set_password(self, raw_password):
         self.password = make_password(raw_password)
@@ -54,7 +56,7 @@ class Conversation(models.Model):
 
     class Meta:
         ordering = ['-updated_at']
-        unique_together = ['leader', 'anonymous']  # Prevent duplicate conversations between same leader and anonymous user
+        unique_together = ['leader', 'anonymous'] 
 
     def __str__(self):
         anon_id = str(self.anonymous.id)[:8] if self.anonymous else "unknown"
@@ -69,8 +71,13 @@ class Message(models.Model):
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    
+    
     class Meta:
         ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['conversation', 'created_at']),
+        ]
 
     def __str__(self):
         return f"{self.sender_type}: {self.body[:30]}"
