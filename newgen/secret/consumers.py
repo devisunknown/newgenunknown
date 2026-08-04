@@ -120,18 +120,36 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
-    async def handle_read_receipt(self, data):
-        message_id = data.get('message_id')
-        await self.mark_message_read(message_id)
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'read_receipt',
-                'message_id': message_id,
-                'is_leader': self.is_leader,
-            }
-        )
+    async def handle_chat_message(self, data):
+     body = data.get('message', '').strip()
+     if not body:
+        return
 
+     if self.is_leader:
+        sender_type = 'leader'
+        sender_name = await self.get_leader_name()
+     else:
+        sender_type = 'anon'
+        sender_name = 'You (Anonymous)'
+
+
+    # Send instantly to users
+     await self.channel_layer.group_send(
+        self.room_group_name,
+        {
+            'type': 'chat_message',
+            'message': body,
+            'sender_type': sender_type,
+            'sender_name': sender_name,
+            'timestamp': timezone.now().strftime('%I:%M %p'),
+            'sender_is_leader': self.is_leader,
+            'message_id': None,
+        }
+    )
+
+
+    # Save after sending
+    await self.save_message(body, sender_type)
     # ========== EVENT HANDLERS ==========
 
     async def chat_message(self, event):
