@@ -198,131 +198,336 @@ document.addEventListener('DOMContentLoaded', () => {
     const typingLabel = document.getElementById('typing-label');
 
     const wsUrl = '{{ ws_url }}';
-    const socket = new WebSocket(wsUrl);
-    let typingTimeout;
 
-    socket.onopen = function(e) {
-        console.log('Connected to Whisper Line');
-    };
+    let socket = null;
+    let typingTimeout = null;
+    let reconnectAttempts = 0;
+    let manuallyClosed = false;
 
-    socket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
+    function connectWebSocket() {
+        console.log("Connecting WebSocket...");
 
-        if (data.type === 'message') {
-            appendMessage(data);
-            hideTyping();
-        } 
-        else if (data.type === 'typing') {
-            if (data.is_typing) {
-                typingLabel.textContent = 'Leader is typing...';
-                typingIndicator.style.display = 'flex';
-                chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
-            } else {
-                hideTyping();
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+            console.log("Connected to Whisper Line");
+            reconnectAttempts = 0;
+        };
+
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            switch(data.type) {
+
+                case "message":
+                    appendMessage(data);
+                    hideTyping();
+                    break;
+
+
+                case "typing":
+                    if (data.is_typing) {
+                        typingLabel.textContent = "Leader is typing...";
+                        typingIndicator.style.display = "flex";
+
+                        chatContainer.scrollTo({
+                            top: chatContainer.scrollHeight,
+                            behavior: "smooth"
+                        });
+
+                    } else {
+                        hideTyping();
+                    }
+                    break;
+
+
+                case "online":
+                    console.log("Leader is online");
+                    break;
+
+
+                case "offline":
+                    console.log("Leader is offline");
+                    break;
             }
-        }
-        else if (data.type === 'online') {
-            console.log('Leader is online');
-        }
-        else if (data.type === 'offline') {
-            console.log('Leader went offline');
-        }
-    };
+        };
 
-    socket.onclose = function(e) {
-        console.log('Disconnected. Reconnecting...');
-        setTimeout(() => location.reload(), 3000);
-    };
 
-    socket.onerror = function(e) {
-        console.error('WebSocket error:', e);
-    };
+        socket.onerror = (error) => {
+            console.error("WebSocket error:", error);
+        };
 
+
+        socket.onclose = () => {
+
+            console.log("WebSocket disconnected");
+
+            if (!manuallyClosed) {
+
+                if (reconnectAttempts < 10) {
+
+                    reconnectAttempts++;
+
+                    const delay = Math.min(
+                        reconnectAttempts * 3000,
+                        15000
+                    );
+
+                    console.log(
+                        `Reconnecting in ${delay / 1000}s...`
+                    );
+
+                    setTimeout(() => {
+                        connectWebSocket();
+                    }, delay);
+
+                } else {
+                    console.log(
+                        "Stopped reconnecting after multiple failures"
+                    );
+                }
+            }
+        };
+    }
+
+
+    connectWebSocket();
+
+
+
+    // SEND MESSAGE
     sendBtn.addEventListener('click', () => {
+
         const text = textarea.value.trim();
-        if (!text || socket.readyState !== WebSocket.OPEN) return;
+
+        if (!text) return;
+
+
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            console.log("Socket not connected");
+            return;
+        }
+
 
         socket.send(JSON.stringify({
-            type: 'message',
+            type: "message",
             message: text
         }));
 
-        textarea.value = '';
-        textarea.style.height = 'auto';
+
+        textarea.value = "";
+        textarea.style.height = "auto";
+
         stopTyping();
     });
 
-    textarea.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
+
+
+    // ENTER TO SEND
+    textarea.addEventListener('keypress', (event) => {
+
+        if(event.key === "Enter" && !event.shiftKey){
+
+            event.preventDefault();
+
             sendBtn.click();
         }
+
     });
 
+
+
+    // TYPING INDICATOR
     textarea.addEventListener('input', () => {
-        if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type: 'typing', is_typing: true }));
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(stopTyping, 2000);
+
+        if(!socket || socket.readyState !== WebSocket.OPEN){
+            return;
         }
+
+
+        socket.send(JSON.stringify({
+            type:"typing",
+            is_typing:true
+        }));
+
+
+        clearTimeout(typingTimeout);
+
+
+        typingTimeout = setTimeout(() => {
+
+            stopTyping();
+
+        },2000);
+
     });
 
-    function stopTyping() {
-        if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type: 'typing', is_typing: false }));
+
+
+    function stopTyping(){
+
+        if(socket && socket.readyState === WebSocket.OPEN){
+
+            socket.send(JSON.stringify({
+                type:"typing",
+                is_typing:false
+            }));
+
         }
     }
 
-    function hideTyping() {
-        typingIndicator.style.display = 'none';
+
+
+    function hideTyping(){
+
+        typingIndicator.style.display = "none";
+
     }
 
-    function appendMessage(data) {
-        const isMe = data.is_me;
-        const div = document.createElement('div');
-        div.className = 'flex flex-col gap-1 fade-in ' + (isMe ? 'items-end' : 'items-start');
 
-        if (data.sender_is_leader) {
-            // Leader message bubble
+
+    function appendMessage(data){
+
+        const div = document.createElement("div");
+
+        const isLeader = data.sender_is_leader;
+
+
+        div.className =
+            "flex flex-col gap-1 fade-in " +
+            (isLeader ? "items-start" : "items-end");
+
+
+
+        if(isLeader){
+
             div.innerHTML = `
-                <div class="flex items-center gap-2 mb-1">
-                    <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                        <span class="material-symbols-outlined text-[14px] text-white" style="font-variation-settings: 'FILL' 1;">verified_user</span>
-                    </div>
-                    <span class="font-label-sm text-label-sm text-primary">${escapeHtml(data.sender_name)}</span>
+
+            <div class="flex items-center gap-2 mb-1">
+
+                <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+
+                    <span class="material-symbols-outlined text-[14px] text-white">
+                        verified_user
+                    </span>
+
                 </div>
-                <div class="message-bubble bg-white border border-primary/5 rounded-t-lg rounded-br-lg rounded-bl-[4px] px-4 py-3">
-                    <p class="font-body-md text-body-md text-on-surface">${escapeHtml(data.message)}</p>
-                </div>
-                <span class="font-caption text-caption text-on-surface-variant/50 ml-1">${data.timestamp}</span>
+
+                <span class="font-label-sm text-primary">
+                    ${escapeHtml(data.sender_name)}
+                </span>
+
+            </div>
+
+
+            <div class="message-bubble bg-white border border-primary/5 rounded-lg px-4 py-3">
+
+                <p class="font-body-md text-on-surface">
+                    ${escapeHtml(data.message)}
+                </p>
+
+            </div>
+
+
+            <span class="font-caption text-on-surface-variant/50">
+                ${data.timestamp}
+            </span>
+
             `;
+
+
         } else {
-            // Anonymous message bubble
+
+
             div.innerHTML = `
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="font-label-sm text-label-sm text-secondary">${escapeHtml(data.sender_name)}</span>
-                    <div class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center">
-                        <span class="material-symbols-outlined text-[14px] text-on-secondary-container">cloud</span>
-                    </div>
+
+            <div class="flex items-center gap-2 mb-1">
+
+                <span class="font-label-sm text-secondary">
+                    ${escapeHtml(data.sender_name || "You (Anonymous)")}
+                </span>
+
+
+                <div class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center">
+
+                    <span class="material-symbols-outlined text-[14px]">
+                        cloud
+                    </span>
+
                 </div>
-                <div class="message-bubble bg-secondary text-white rounded-t-lg rounded-bl-lg rounded-br-[4px] px-4 py-3">
-                    <p class="font-body-md text-body-md">${escapeHtml(data.message)}</p>
-                </div>
-                <span class="font-caption text-caption text-on-surface-variant/50 mr-1">${data.timestamp}</span>
+
+            </div>
+
+
+
+            <div class="message-bubble bg-secondary text-white rounded-lg px-4 py-3">
+
+                <p class="font-body-md">
+                    ${escapeHtml(data.message)}
+                </p>
+
+            </div>
+
+
+            <span class="font-caption text-on-surface-variant/50">
+                ${data.timestamp}
+            </span>
+
             `;
+
         }
 
-        messagesArea.insertBefore(div, typingIndicator);
-        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+
+
+        messagesArea.insertBefore(
+            div,
+            typingIndicator
+        );
+
+
+        chatContainer.scrollTo({
+
+            top: chatContainer.scrollHeight,
+
+            behavior:"smooth"
+
+        });
+
     }
 
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
+
+
+
+    function escapeHtml(text){
+
+        const div=document.createElement("div");
+
+        div.textContent=text;
+
         return div.innerHTML;
+
     }
 
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+
+    // Scroll to latest messages on load
+    chatContainer.scrollTop =
+        chatContainer.scrollHeight;
+
+
+
+    // Close socket cleanly when leaving page
+    window.addEventListener("beforeunload",()=>{
+
+        manuallyClosed=true;
+
+        if(socket){
+            socket.close();
+        }
+
+    });
+
 });
 </script>
 </body>
