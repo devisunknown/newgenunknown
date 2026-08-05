@@ -1,6 +1,9 @@
 import json
+import traceback
+
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 
@@ -10,93 +13,137 @@ from .models import Conversation, Message, Leader
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
-        self.conv_id = self.scope["url_route"]["kwargs"]["conv_id"]
-        self.requested_role = self.scope["url_route"]["kwargs"]["role"]
 
-        self.room_group_name = f"chat_{self.conv_id}"
+        try:
+            self.conv_id = self.scope["url_route"]["kwargs"]["conv_id"]
+            self.requested_role = self.scope["url_route"]["kwargs"]["role"]
 
-        session = self.scope.get("session", {})
+            self.room_group_name = f"chat_{self.conv_id}"
 
-        self.is_leader = self.requested_role == "leader"
+            session = self.scope.get("session")
 
-        if self.is_leader:
-            self.leader_id = session.get("leader_id")
-
-            if not self.leader_id:
-                await self.close()
-                return
-
-        else:
-            self.anon_id = session.get("anon_id")
-
-            if not self.anon_id:
+            if not session:
                 await self.close()
                 return
 
 
-        if not await self.can_access_conversation():
+            self.is_leader = self.requested_role == "leader"
+
+
+            if self.is_leader:
+
+                self.leader_id = session.get("leader_id")
+
+                if not self.leader_id:
+                    await self.close()
+                    return
+
+            else:
+
+                self.anon_id = session.get("anon_id")
+
+                if not self.anon_id:
+                    await self.close()
+                    return
+
+
+
+            allowed = await self.can_access_conversation()
+
+            if not allowed:
+                await self.close()
+                return
+
+
+
+            await self.channel_layer.group_add(
+                self.room_group_name,
+                self.channel_name
+            )
+
+
+            await self.accept()
+
+
+
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "user_online",
+                    "is_leader": self.is_leader
+                }
+            )
+
+
+        except Exception:
+
+            traceback.print_exc()
             await self.close()
-            return
 
-
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
-
-        await self.accept()
-
-
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "user_online",
-                "is_leader": self.is_leader
-            }
-        )
 
 
     async def disconnect(self, close_code):
 
-        await self.channel_layer.group_discard(
-            self.room_group_name,
-            self.channel_name
-        )
+        try:
+
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
 
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "user_offline",
-                "is_leader": self.is_leader
-            }
-        )
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "user_offline",
+                    "is_leader": self.is_leader
+                }
+            )
+
+
+        except Exception as e:
+
+            print("Disconnect error:", e)
+
 
 
 
     async def receive(self, text_data):
 
         try:
+
             data = json.loads(text_data)
 
-        except json.JSONDecodeError:
-            return
+            msg_type = data.get(
+                "type",
+                "message"
+            )
 
 
-        msg_type = data.get("type", "message")
+            if msg_type == "message":
+
+                await self.handle_chat_message(data)
 
 
-        if msg_type == "message":
-            await self.handle_chat_message(data)
+            elif msg_type == "typing":
 
-        elif msg_type == "typing":
-            await self.handle_typing(data)
+                await self.handle_typing(data)
+
+
+
+        except Exception:
+
+            traceback.print_exc()
 
 
 
     async def handle_chat_message(self, data):
 
-        body = data.get("message", "").strip()
+        body = data.get(
+            "message",
+            ""
+        ).strip()
+
 
         if not body:
             return
@@ -106,6 +153,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
 
+
         sender_type = (
             "leader"
             if self.is_leader
@@ -113,19 +161,37 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
 
-        sender_name = (
-           await self.get_leader_name()
-            if self.is_leader
-             else None
-            )
+
+        sender_name = None
 
 
-        timestamp = timezone.now().strftime("%I:%M %p")
+        if self.is_leader:
+
+            sender_name = await self.get_leader_name()
 
 
-        # SEND FIRST - instant UI update
+
+        timestamp = timezone.now().strftime(
+            "%I:%M %p"
+        )
+
+
+
+        # SAVE FIRST
+
+        saved_message = await self.save_message(
+            body,
+            sender_type
+        )
+
+
+
+        # THEN BROADCAST
+
         await self.channel_layer.group_send(
+
             self.room_group_name,
+
             {
                 "type": "chat_message",
 
@@ -137,25 +203,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
                 "timestamp": timestamp,
 
-                "message_id": None,
+                "message_id": saved_message.id,
 
-                "sender_is_leader": self.is_leader,
+                "sender_is_leader": self.is_leader
             }
         )
 
 
-        # SAVE AFTER BROADCAST
-        await self.save_message(
-            body,
-            sender_type
-        )
 
 
 
     async def handle_typing(self, data):
 
         await self.channel_layer.group_send(
+
             self.room_group_name,
+
             {
                 "type": "typing_indicator",
 
@@ -164,71 +227,125 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     False
                 ),
 
-                "is_leader": self.is_leader,
+                "is_leader": self.is_leader
             }
+
         )
+
+
 
 
 
     async def chat_message(self, event):
 
-       await self.send(text_data=json.dumps({
-       "type": "message",
-       "message": event["message"],
-       "sender_type": event["sender_type"],
-       "sender_name": event["sender_name"],
-       "timestamp": event["timestamp"],
-       "message_id": event["message_id"],
-       "sender_is_leader": event["sender_is_leader"],
-       "is_me": (
-           event["sender_is_leader"] == self.is_leader
-    ),
-}))
+        await self.send(
+
+            text_data=json.dumps({
+
+                "type": "message",
+
+                "message": event.get(
+                    "message"
+                ),
+
+                "sender_type": event.get(
+                    "sender_type"
+                ),
+
+                "sender_name": event.get(
+                    "sender_name"
+                ),
+
+                "timestamp": event.get(
+                    "timestamp"
+                ),
+
+                "message_id": event.get(
+                    "message_id"
+                ),
+
+                "sender_is_leader": event.get(
+                    "sender_is_leader"
+                ),
+
+                "is_me":
+                    event.get(
+                        "sender_is_leader"
+                    ) == self.is_leader
+
+            })
+
+        )
 
 
-    async def typing_indicator(self,event):
 
-        if event["is_leader"] == self.is_leader:
+
+
+    async def typing_indicator(self, event):
+
+        if event.get("is_leader") == self.is_leader:
+
             return
 
 
+
         await self.send(
-            text_data=json.dumps(
-                {
-                    "type":"typing",
-                    "is_typing":
-                    event["is_typing"]
-                }
-            )
+
+            text_data=json.dumps({
+
+                "type": "typing",
+
+                "is_typing": event.get(
+                    "is_typing",
+                    False
+                )
+
+            })
+
         )
 
 
 
-    async def user_online(self,event):
+
+
+    async def user_online(self, event):
 
         await self.send(
-            text_data=json.dumps(
-                {
-                    "type":"online",
-                    "is_leader":
-                    event["is_leader"]
-                }
-            )
+
+            text_data=json.dumps({
+
+                "type": "online",
+
+                "is_leader": event.get(
+                    "is_leader"
+                )
+
+            })
+
         )
 
 
 
-    async def user_offline(self,event):
+
+
+    async def user_offline(self, event):
 
         await self.send(
-            text_data=json.dumps(
-                {
-                    "type":"offline",
-                    "is_leader":
-                    event["is_leader"]
-                }
-            )
+
+            text_data=json.dumps({
+
+                "type": "offline",
+
+                "is_leader": event.get(
+                    "is_leader"
+                )
+
+            })
+
         )
+
+
+
 
 
 
@@ -245,42 +362,52 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
 
+
             if self.is_leader:
 
-                return (
-                    str(conv.leader.id)
-                    ==
-                    str(self.leader_id)
+                return str(
+                    conv.leader.id
+                ) == str(
+                    self.leader_id
                 )
 
 
-            return (
-                str(conv.anonymous.id)
-                ==
-                str(self.anon_id)
+
+            return str(
+                conv.anonymous.id
+            ) == str(
+                self.anon_id
             )
 
 
+
         except ObjectDoesNotExist:
+
             return False
 
 
 
-    @database_sync_to_async
-    def save_message(self,body,sender_type):
 
-        conv = Conversation.objects.get(
+
+    @database_sync_to_async
+    def save_message(self, body, sender_type):
+
+        conversation = Conversation.objects.get(
             id=self.conv_id
         )
 
 
         return Message.objects.create(
-            conversation=conv,
+
+            conversation=conversation,
 
             sender_type=sender_type,
 
             body=body
+
         )
+
+
 
 
 
@@ -289,11 +416,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         try:
 
-            return Leader.objects.only(
+            leader = Leader.objects.only(
                 "name"
             ).get(
                 id=self.leader_id
-            ).name
+            )
+
+
+            return leader.name
+
 
 
         except ObjectDoesNotExist:

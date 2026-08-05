@@ -102,11 +102,18 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [
-                os.environ.get("REDIS_URL")
+                {
+                    "address": os.environ.get("REDIS_URL"),
+                }
             ],
+            "capacity": 1000,
+            "expiry": 60,
+            "group_expiry": 86400,
         },
     },
 }
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
