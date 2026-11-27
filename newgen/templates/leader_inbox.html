@@ -1,136 +1,204 @@
-{% load static %}
+{% load static chat_extras %}
 <!DOCTYPE html>
-<html class="light" lang="en">
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>whisper Shaker - Leader Inbox</title>
-<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              "secondary-fixed": "#ccebc7", "primary-fixed": "#d2e4fb",
-              "on-primary-fixed": "#0b1d2d", "tertiary": "#141614",
-              "tertiary-container": "#292a28", "surface-container-lowest": "#ffffff",
-              "outline-variant": "#c4c6cd", "on-error": "#ffffff",
-              "error-container": "#ffdad6", "surface-container-low": "#f0f3ff",
-              "tertiary-fixed-dim": "#c7c6c4", "on-tertiary": "#ffffff",
-              "on-tertiary-container": "#91918f", "outline": "#74777d",
-              "surface-container-highest": "#d8e3fa", "on-tertiary-fixed-variant": "#464745",
-              "on-secondary-container": "#506b4f", "surface-variant": "#d8e3fa",
-              "surface-container-high": "#dee8ff", "on-secondary-fixed": "#07200b",
-              "on-secondary": "#ffffff", "on-primary-fixed-variant": "#38485a",
-              "on-primary-container": "#8192a7", "on-error-container": "#93000a",
-              "inverse-surface": "#263142", "error": "#ba1a1a", "tertiary-fixed": "#e3e2e0",
-              "surface-bright": "#f9f9ff", "inverse-primary": "#b7c8de", "secondary": "#4a6549",
-              "on-surface-variant": "#44474c", "on-tertiary-fixed": "#1a1c1a",
-              "on-primary": "#ffffff", "secondary-container": "#ccebc7",
-              "on-background": "#111c2c", "surface": "#f9f9ff",
-              "inverse-on-surface": "#ebf1ff", "background": "#f9f9ff",
-              "primary-container": "#1a2b3c", "surface-dim": "#cfdaf1",
-              "on-secondary-fixed-variant": "#334d33", "primary": "#041627",
-              "primary-fixed-dim": "#b7c8de", "on-surface": "#111c2c",
-              "surface-tint": "#4f6073", "surface-container": "#e7eeff",
-              "secondary-fixed-dim": "#b0cfad"
-            },
-            borderRadius: { DEFAULT: "1rem", lg: "2rem", xl: "3rem", full: "9999px" },
-            spacing: {
-              "stack-sm": "12px", "stack-lg": "48px", "container-max": "1200px",
-              "stack-md": "24px", "gutter": "24px", "unit": "8px",
-              "margin-desktop": "64px", "margin-mobile": "20px"
-            },
-            fontFamily: {
-              "display-lg": ["Quicksand"], "title-md": ["Quicksand"], "headline-lg": ["Quicksand"],
-              "caption": ["Quicksand"], "label-sm": ["Quicksand"], "headline-lg-mobile": ["Quicksand"],
-              "body-md": ["Quicksand"], "body-lg": ["Quicksand"]
-            },
-            fontSize: {
-              "display-lg": ["40px", {lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700"}],
-              "title-md": ["20px", {lineHeight: "28px", fontWeight: "600"}],
-              "headline-lg": ["32px", {lineHeight: "40px", fontWeight: "600"}],
-              "caption": ["12px", {lineHeight: "16px", fontWeight: "500"}],
-              "label-sm": ["14px", {lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "600"}],
-              "headline-lg-mobile": ["24px", {lineHeight: "32px", fontWeight: "600"}],
-              "body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}],
-              "body-lg": ["18px", {lineHeight: "28px", fontWeight: "500"}]
-            }
-          },
-        },
-      }
-    </script>
-<style>
-  body { font-family: 'Quicksand', sans-serif; background-color: #f9f9ff; -webkit-font-smoothing: antialiased; }
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; display: inline-block; vertical-align: middle; }
-  .message-preview { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-  .glass-header { background: rgba(249, 249, 255, 0.8); backdrop-filter: blur(12px); }
-  .thread-item:active { transform: scale(0.98); }
-  .presence-dot { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; border: 2px solid white; border-radius: 50%; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#ffffff"/>
+<title>Messages · anylink</title>
+<link rel="icon" href="{% static 'secret/favicon.svg' %}" type="image/svg+xml"/>
+<link rel="stylesheet" href="{% static 'secret/app.css' %}"/>
+{% include "partials/theme_boot.html" %}
 </head>
-<body class="text-on-surface">
-<header class="glass-header fixed top-0 w-full z-50 transition-all duration-200">
-  <div class="flex items-center justify-between px-margin-mobile h-16 w-full max-w-container-max mx-auto">
-    <h1 class="font-title-md text-title-md text-primary">Whisper Line</h1>
-    <div class="flex items-center gap-4">
-      <span class="font-label-sm text-label-sm text-on-surface-variant">{{ leader.name }}</span>
-      <a href="{% url 'logout' %}" class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" title="Sign out">logout</a>
+<body class="app-page">
+<div class="app">
+  <header class="app-header">
+    <div class="app-header__titles">
+      <h1 class="app-title">Messages</h1>
+      <p class="app-sub">
+        {{ leader.name }}
+        <span class="role-badge role-badge--{{ leader.role }}">{{ leader.role_label }}</span>
+        {% if leader.institution %}<span>· {{ leader.institution.name }}</span>{% endif %}
+      </p>
     </div>
-  </div>
-</header>
+    <div class="header-actions">
+      {% include "partials/theme_toggle.html" %}
+      <button class="icon-btn icon-btn--plain" type="button" id="inbox-search-toggle" aria-label="Search conversations">
+        {% icon "search" 20 %}
+      </button>
+      <button class="compose-btn" type="button" id="share-room-toggle" aria-label="Share your room">
+        {% icon "edit" 19 %}
+      </button>
+    </div>
+  </header>
 
-<main class="pt-24 pb-16 px-margin-mobile max-w-[720px] mx-auto min-h-screen">
-  <section class="mb-stack-md">
-    <div class="bg-secondary-container/20 border border-secondary/10 rounded-lg p-4 flex items-start gap-3">
-      <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">verified_user</span>
-      <div>
-        <p class="font-label-sm text-label-sm text-secondary font-bold">Conversations</p>
-        <p class="font-caption text-caption text-on-surface-variant">Every sender here is anonymous. Their identity is never visible to you.</p>
+  <main class="screen">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="{% if message.tags == 'error' %}error-box{% else %}notice-box{% endif %}" role="status">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+    <div id="inbox-banner" class="notice-box" hidden></div>
+
+    <div class="search-wrap" id="inbox-search" hidden>
+      {% icon "search" 18 %}
+      <input type="search" id="inbox-search-input" data-filter-target="thread-list"
+             placeholder="Search by alias or message" aria-label="Search conversations"/>
+    </div>
+
+    {% if recent_conversations %}
+      <div class="story-row" aria-label="Recent conversations">
+        {% for conv in recent_conversations %}
+          <a class="story" href="{% url 'leader_chat' conv.id %}">
+            <span class="avatar avatar--story {{ conv.alias|avatar_tone }}">{{ conv.alias|initials }}</span>
+            <span class="story__name">{{ conv.alias|truncatechars:12 }}</span>
+          </a>
+        {% endfor %}
+        {% if is_institution_admin %}
+          <button class="story story--add" type="button" data-open-share>
+            <span class="avatar avatar--story">{% icon "plus" 20 %}</span>
+            <span class="story__name">Share room</span>
+          </button>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="metric-row">
+      <div class="metric">
+        <span class="metric__label">{% icon "inbox" 12 %} Open</span>
+        <span class="metric__value" id="stat-open">{{ open_total }}</span>
+      </div>
+      <div class="metric">
+        <span class="metric__label">{% icon "message" 12 %} Unread</span>
+        <span class="metric__value" id="stat-unread">{{ unread_total }}</span>
+      </div>
+      <div class="metric">
+        <span class="metric__label">{% icon "check-check" 12 %} Resolved</span>
+        <span class="metric__value" id="stat-resolved">{{ resolved_total }}</span>
       </div>
     </div>
-  </section>
 
-  <div class="space-y-stack-sm">
-    {% for conv in conversations %}
-    <a href="{% url 'leader_chat' conv.id %}" class="thread-item group block bg-white p-4 rounded-lg shadow-[0_10px_30px_rgba(26,43,60,0.05)] border border-primary/5 hover:border-secondary/20 transition-all duration-200">
-      <div class="flex gap-4">
-        <div class="relative flex-shrink-0">
-          <div class="w-14 h-14 rounded-full bg-surface-container-highest flex items-center justify-center">
-            <span class="material-symbols-outlined text-primary text-[24px]">person</span>
+    <nav class="segmented" aria-label="Filter conversations">
+      <a class="{% if filter == 'all' %}is-active{% endif %}" href="?filter=all">All</a>
+      <a class="{% if filter == 'unread' %}is-active{% endif %}" href="?filter=unread">Unread</a>
+      <a class="{% if filter == 'resolved' %}is-active{% endif %}" href="?filter=resolved">Resolved</a>
+    </nav>
+
+    <div class="thread-list" id="thread-list" data-filter="{{ filter }}">
+      {% for conv in conversations %}
+        <a class="thread {% if conv.needs_attention %}thread--urgent{% endif %}"
+           href="{% url 'leader_chat' conv.id %}"
+           data-conversation-id="{{ conv.id }}"
+           data-status="{{ conv.status }}"
+           data-unread="{{ conv.unread_count }}"
+           data-search="{{ conv.alias|lower }} {{ conv.last_message_preview|default:''|lower }}"
+           data-urgent="{% if conv.needs_attention %}1{% else %}0{% endif %}">
+          <div class="avatar {{ conv.alias|avatar_tone }}{% if conv.status == 'resolved' %} avatar--soft{% endif %}">
+            {{ conv.alias|initials }}
           </div>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex justify-between items-start mb-1">
-            <h3 class="font-title-md text-title-md text-primary truncate">Anonymous {{ conv.anonymous.id|slice:"-4" }}</h3>
-            <span class="font-caption text-caption {% if conv.unread_count %}text-secondary font-bold{% else %}text-on-surface-variant{% endif %} whitespace-nowrap">
-              {% if conv.last_message_created_at %}{{ conv.last_message_created_at|timesince }} ago{% else %}{{ conv.created_at|timesince }} ago{% endif %}
-            </span>
+          <div class="thread__body">
+            <div class="thread__top">
+              <span class="thread__alias">{{ conv.alias }}</span>
+              <span class="thread__time">
+                {% if conv.last_message_at %}{{ conv.last_message_at|date:"g:i A" }}{% else %}New{% endif %}
+              </span>
+            </div>
+            <div class="thread__preview">
+              {% if conv.last_message_preview %}{{ conv.last_message_preview }}{% else %}New anonymous conversation{% endif %}
+            </div>
+            <div class="thread__meta">
+              {% if conv.unread_count %}
+                <span class="badge-count">{{ conv.unread_count }}</span>
+              {% endif %}
+              {% if conv.needs_attention %}
+                <span class="urgent-tag">{% icon "alert" 11 %} Needs attention</span>
+              {% endif %}
+              {% if conv.status == 'resolved' %}
+                <span class="urgent-tag resolved-tag">Resolved</span>
+              {% endif %}
+              <span class="role-badge role-badge--{{ conv.leader.role }}">{{ conv.leader.role_label }}</span>
+            </div>
           </div>
-          <div class="flex items-center justify-between">
-            <p class="font-body-md text-body-md message-preview {% if conv.unread_count %}text-on-surface-variant font-semibold{% else %}text-on-surface-variant/70{% endif %}">
-              {% if conv.last_message_body %}{{ conv.last_message_body|truncatechars:50 }}{% else %}No messages yet{% endif %}
-            </p>
-            {% if conv.unread_count %}
-            <span class="ml-2 flex-shrink-0 min-w-[20px] h-5 px-1.5 bg-secondary text-white text-[11px] font-bold rounded-full flex items-center justify-center">{{ conv.unread_count }}</span>
+          <div class="thread__tail">
+            {% if conv.status == 'resolved' %}
+              <span class="tick-icon tick-icon--muted">{% icon "check-check" 15 %}</span>
+            {% else %}
+              <span class="tick-icon tick-icon--muted">{% icon "chevron-right" 17 %}</span>
             {% endif %}
           </div>
+        </a>
+      {% empty %}
+        <div class="empty-state">
+          <div class="empty-state__icon">{% icon "message" 24 %}</div>
+          <h3>No conversations here yet</h3>
+          <p>When an anonymous person chooses you, their message will appear here.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="privacy-note" style="margin-top:20px;margin-bottom:0;">
+      <span class="privacy-note__icon">{% icon "shield" 16 %}</span>
+      <div>
+        <strong>You only see the alias.</strong>
+        Never ask for a name, phone number or address. If someone is in danger, call
+        <a href="tel:112" style="font-weight:600;color:var(--danger);">112</a>.
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <a class="nav-item nav-item--active" href="{% url 'leader_inbox' %}" aria-current="page">
+      {% icon "inbox" 20 %}<span>Messages</span>
+      <span class="badge-count" id="unread-badge"{% if not unread_total %} hidden{% endif %}>{{ unread_total }}</span>
+    </a>
+    <a class="nav-item" href="{% url 'leader_profile' %}">
+      {% icon "user" 20 %}<span>Profile</span>
+    </a>
+    <a class="nav-item" href="{% url 'logout' %}">
+      {% icon "logout" 20 %}<span>Sign out</span>
+    </a>
+  </nav>
+</div>
+
+<div class="sheet" id="share-sheet" hidden>
+  <div class="sheet__head">
+    <strong>Share your room</strong>
+    <button class="icon-btn icon-btn--plain" type="button" data-close-sheet aria-label="Close">{% icon "x" 20 %}</button>
+  </div>
+  <div class="sheet__body">
+    {% if room %}
+      <div class="sheet__section">
+        <div class="sheet__label">Room code · {{ room.code_length }} digits</div>
+        <div class="code-box">
+          <strong id="room-code">{{ room.code }}</strong>
+          <button class="btn btn--secondary btn--sm" type="button" id="copy-code">{% icon "copy" 14 %} Copy</button>
         </div>
       </div>
-    </a>
-    {% empty %}
-    <div class="text-center py-stack-lg">
-      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-container-low flex items-center justify-center">
-        <span class="material-symbols-outlined text-4xl text-on-surface-variant/30">chat_bubble</span>
+      <div class="sheet__section">
+        <div class="sheet__label">Invitation link · send this first</div>
+        <div class="share-link" id="share-url">{{ share_url }}</div>
+        <button class="btn btn--secondary btn--sm" type="button" id="copy-link">{% icon "link" 14 %} Copy link</button>
       </div>
-      <h3 class="font-title-md text-title-md text-primary mb-2">No conversations yet</h3>
-      <p class="font-body-md text-body-md text-on-surface-variant max-w-xs mx-auto">When someone reaches out to the line, their message will appear here. Thank you for being a supportive presence.</p>
-    </div>
-    {% endfor %}
+      <p class="tiny">
+        Anyone with both the link and code can enter anonymously. Treat it like a
+        private invitation and share it only with the people you support.
+      </p>
+    {% else %}
+      <p class="muted" style="margin:8px 0;">This institution does not have a room yet.</p>
+    {% endif %}
   </div>
-</main>
+</div>
+
+<script>
+  window.INBOX_CONFIG = {
+    dataUrl: "{% url 'leader_inbox_data' %}",
+    wsUrl: "{{ ws_url }}",
+    filter: "{{ filter }}"
+  };
+</script>
+<script src="{% static 'secret/inbox.js' %}" defer></script>
+<script src="{% static 'secret/ui.js' %}" defer></script>
 </body>
 </html>

@@ -1,0 +1,94 @@
+{% load static chat_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#ffffff" data-light="#ffffff"/>
+<title>Room code · anylink</title>
+<link rel="icon" href="{% static 'secret/favicon.svg' %}" type="image/svg+xml"/>
+<link rel="stylesheet" href="{% static 'secret/app.css' %}"/>
+{% include "partials/theme_boot.html" %}
+</head>
+<body class="app-page">
+<div class="app">
+  <header class="topbar">
+    <a class="brand brand--lockup" href="{% url 'landing' %}">
+      <span class="brand__mark">{% ghost_mark 27 %}</span>
+      <span class="brand__name">anylink<small>Private support</small></span>
+    </a>
+    <div class="header-actions">
+      {% include "partials/theme_toggle.html" %}
+      <a class="entry-back" href="{% url 'landing' %}" aria-label="Close and go home">
+        {% icon "x" 18 %}
+      </a>
+    </div>
+  </header>
+
+  <main class="screen entry-screen">
+    <section class="entry-stage">
+      <div class="entry-ghost" data-entry-ghost>
+        {% ghost_mark 92 %}
+        <span class="entry-ghost__check" data-entry-check hidden>{% icon "check" 22 %}</span>
+      </div>
+      <p class="entry-kicker">{{ institution.name }}</p>
+      <h1 class="entry-title">Enter your room code</h1>
+      <p class="entry-sub">
+        {% if room_available %}
+          Type the {{ code_length }}-digit code that came with your invitation.
+        {% else %}
+          This room is paused right now. Please try again later.
+        {% endif %}
+      </p>
+    </section>
+
+    <form class="otp-card" method="post" action="{% url 'room_entry' room.id %}"
+          data-otp-form data-length="{{ code_length }}" novalidate>
+      {% csrf_token %}
+
+      <div class="otp{% if error %} is-error{% endif %}" data-otp data-length="{{ code_length }}">
+        {% for i in code_slots %}
+          <input class="otp__digit" type="text" name="digit" inputmode="numeric"
+                 pattern="[0-9]*" maxlength="1" autocomplete="off"
+                 aria-label="Digit {{ i }} of {{ code_length }}"
+                 {% if not room_available %}disabled{% endif %} required/>
+        {% endfor %}
+      </div>
+
+      <p class="otp-message{% if error %} is-visible{% endif %}" data-otp-message role="status" aria-live="polite">
+        {% if error %}{{ error }}{% endif %}
+      </p>
+
+      <button class="btn btn--primary btn--full otp-submit" type="submit"
+              data-otp-submit {% if not room_available %}disabled{% endif %}>
+        <span>Open the room</span>
+        {% icon "arrow-right" 17 %}
+        <span class="otp-submit__spinner" aria-hidden="true"></span>
+      </button>
+
+      <p class="otp-hint">
+        {% icon "shield" 13 %}
+        <span>Codes are checked privately. If someone else knows your code, ask your organisation for a new one.</span>
+      </p>
+    </form>
+
+    <div class="entry-help">
+      <span class="entry-help__icon">{% icon "users" 15 %}</span>
+      <p>After the code you'll meet the leaders and counsellors in this room. No name, email or phone number needed.</p>
+    </div>
+
+    <p class="footnote">Invitation only · Your identity stays hidden</p>
+  </main>
+
+  <div class="entry-success" data-entry-success hidden aria-live="polite">
+    <div class="entry-success__card">
+      <span class="entry-success__check">{% icon "check" 26 %}</span>
+      <strong>You're in</strong>
+      <span>Opening the leader directory…</span>
+      <span class="entry-success__bar" aria-hidden="true"><i></i></span>
+    </div>
+  </div>
+</div>
+<script src="{% static 'secret/entry.js' %}" defer></script>
+</body>
+</html>

@@ -1,190 +1,115 @@
-{% load static %}
+{% load static chat_extras %}
 <!DOCTYPE html>
-<html class="light" lang="en">
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Inbox - Whisper Shaker</title>
-<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              "secondary-fixed": "#ccebc7", "primary-fixed": "#d2e4fb",
-              "on-primary-fixed": "#0b1d2d", "tertiary": "#141614",
-              "tertiary-container": "#292a28", "surface-container-lowest": "#ffffff",
-              "outline-variant": "#c4c6cd", "on-error": "#ffffff",
-              "error-container": "#ffdad6", "surface-container-low": "#f0f3ff",
-              "tertiary-fixed-dim": "#c7c6c4", "on-tertiary": "#ffffff",
-              "on-tertiary-container": "#91918f", "outline": "#74777d",
-              "surface-container-highest": "#d8e3fa", "on-tertiary-fixed-variant": "#464745",
-              "on-secondary-container": "#506b4f", "surface-variant": "#d8e3fa",
-              "surface-container-high": "#dee8ff", "on-secondary-fixed": "#07200b",
-              "on-secondary": "#ffffff", "on-primary-fixed-variant": "#38485a",
-              "on-primary-container": "#8192a7", "on-error-container": "#93000a",
-              "inverse-surface": "#263142", "error": "#ba1a1a", "tertiary-fixed": "#e3e2e0",
-              "surface-bright": "#f9f9ff", "inverse-primary": "#b7c8de", "secondary": "#4a6549",
-              "on-surface-variant": "#44474c", "on-tertiary-fixed": "#1a1c1a",
-              "on-primary": "#ffffff", "secondary-container": "#ccebc7",
-              "on-background": "#111c2c", "surface": "#f9f9ff",
-              "inverse-on-surface": "#ebf1ff", "background": "#f9f9ff",
-              "primary-container": "#1a2b3c", "surface-dim": "#cfdaf1",
-              "on-secondary-fixed-variant": "#334d33", "primary": "#041627",
-              "primary-fixed-dim": "#b7c8de", "on-surface": "#111c2c",
-              "surface-tint": "#4f6073", "surface-container": "#e7eeff",
-              "secondary-fixed-dim": "#b0cfad"
-            },
-            borderRadius: { DEFAULT: "1rem", lg: "2rem", xl: "3rem", full: "9999px" },
-            spacing: {
-              "stack-sm": "12px", "stack-lg": "48px", "container-max": "1200px",
-              "stack-md": "24px", "gutter": "24px", "unit": "8px",
-              "margin-desktop": "64px", "margin-mobile": "20px"
-            },
-            fontFamily: {
-              "display-lg": ["Quicksand"], "title-md": ["Quicksand"], "headline-lg": ["Quicksand"],
-              "caption": ["Quicksand"], "label-sm": ["Quicksand"], "headline-lg-mobile": ["Quicksand"],
-              "body-md": ["Quicksand"], "body-lg": ["Quicksand"]
-            },
-            fontSize: {
-              "display-lg": ["40px", {lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700"}],
-              "title-md": ["20px", {lineHeight: "28px", fontWeight: "600"}],
-              "headline-lg": ["32px", {lineHeight: "40px", fontWeight: "600"}],
-              "caption": ["12px", {lineHeight: "16px", fontWeight: "500"}],
-              "label-sm": ["14px", {lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "600"}],
-              "headline-lg-mobile": ["24px", {lineHeight: "32px", fontWeight: "600"}],
-              "body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}],
-              "body-lg": ["18px", {lineHeight: "28px", fontWeight: "500"}]
-            }
-          },
-        },
-      }
-    </script>
-<style>
-        body { font-family: 'Quicksand', sans-serif; background-color: #f9f9ff; -webkit-font-smoothing: antialiased; }
-        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; display: inline-block; vertical-align: middle; }
-        .message-preview { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-        .glass-header { background: rgba(249, 249, 255, 0.8); backdrop-filter: blur(12px); }
-        .thread-item:active { transform: scale(0.98); }
-    </style>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#ffffff"/>
+<title>My conversations · anylink</title>
+<link rel="icon" href="{% static 'secret/favicon.svg' %}" type="image/svg+xml"/>
+<link rel="stylesheet" href="{% static 'secret/app.css' %}"/>
+{% include "partials/theme_boot.html" %}
 </head>
-<body class="text-on-surface">
-<!-- TopAppBar -->
-<header class="glass-header fixed top-0 w-full z-50 transition-all duration-200">
-<div class="flex items-center justify-between px-margin-mobile h-16 w-full max-w-container-max mx-auto">
-<div class="flex items-center gap-4">
-<a href="{% url 'directory' %}" class="material-symbols-outlined text-primary hover:opacity-80 transition-opacity active:scale-95">arrow_back</a>
-<h1 class="font-title-md text-title-md text-primary">Inbox</h1>
-</div>
-<div class="flex items-center gap-4">
-<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center overflow-hidden border border-primary/5">
-<span class="material-symbols-outlined text-on-surface-variant">cloud</span>
-</div>
-</div>
-</div>
-</header>
+<body class="app-page">
+<div class="app">
+  <header class="app-header">
+    <div class="app-header__titles">
+      <h1 class="app-title">Messages</h1>
+      <p class="app-sub">
+        {% icon "shield-check" 12 %} Saved privately on this device
+      </p>
+    </div>
+    <div class="header-actions">
+      {% include "partials/theme_toggle.html" %}
+      <a class="compose-btn" href="{% url 'welcome' %}" aria-label="How to get started">
+        {% icon "edit" 19 %}
+      </a>
+    </div>
+  </header>
 
-<main class="pt-24 pb-32 px-margin-mobile max-w-[720px] mx-auto min-h-screen">
-<!-- Reassuring Note Section -->
-<section class="mb-stack-md animate-in fade-in slide-in-from-top duration-700">
-<div class="bg-secondary-container/20 border border-secondary/10 rounded-lg p-4 flex items-start gap-3">
-<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">verified_user</span>
-<div>
-<p class="font-label-sm text-label-sm text-secondary font-bold">Privacy Guaranteed</p>
-<p class="font-caption text-caption text-on-surface-variant">Your identity is never shared with leaders. You appear as an anonymous contributor in every conversation.</p>
-</div>
-</div>
-</section>
+  <main class="screen">
+    {% if conversations %}
+      <div class="search-wrap">
+        {% icon "search" 18 %}
+        <input type="search" id="chats-search" data-filter-target="chats-list"
+               placeholder="Search conversations" aria-label="Search conversations"/>
+      </div>
 
-<!-- Search -->
-<div class="mb-stack-md relative">
-<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50">search</span>
-<input class="w-full h-12 pl-12 pr-4 rounded-full border-none bg-white shadow-[0_10px_30px_rgba(26,43,60,0.05)] focus:ring-2 focus:ring-secondary/20 font-body-md text-body-md placeholder:text-on-surface-variant/40" placeholder="Search conversations..." type="text"/>
-</div>
+      <div class="story-row" aria-label="Recent conversations">
+        {% for conv in conversations|slice:":10" %}
+          <a class="story" href="{% url 'anon_chat' conv.id %}">
+            <span class="avatar avatar--story {{ conv.leader.name|avatar_tone }}">{{ conv.leader.name|initials }}</span>
+            <span class="story__name">{{ conv.leader.name|first_word }}</span>
+          </a>
+        {% endfor %}
+      </div>
 
-<!-- Threads List -->
-<div class="space-y-stack-sm">
-{% for conv in conversations %}
-{% with last_msg=conv.messages.last %}
-<a href="{% url 'chat' conv.leader.id %}" class="thread-item group cursor-pointer bg-white p-4 rounded-lg shadow-[0_10px_30px_rgba(26,43,60,0.05)] border border-primary/5 hover:border-secondary/20 transition-all duration-200 block">
-<div class="flex gap-4">
-<div class="relative flex-shrink-0">
-<div class="w-14 h-14 rounded-full overflow-hidden">
-<img class="w-full h-full object-cover" src="https://ui-avatars.com/api/?name={{ conv.leader.name|urlencode }}&background=4a6549&color=fff&size=120" alt="{{ conv.leader.name }}">
-</div>
-{% if conv.leader.is_online %}
-<div class="absolute bottom-0 right-0 w-4 h-4 bg-secondary border-2 border-white rounded-full"></div>
-{% endif %}
-</div>
-<div class="flex-1 min-w-0">
-<div class="flex justify-between items-start mb-1">
-<h3 class="font-title-md text-title-md text-primary truncate">{{ conv.leader.name }}</h3>
-<span class="font-caption text-caption {% if not last_msg.is_read and last_msg.sender_type == 'leader' %}text-secondary font-bold{% else %}text-on-surface-variant{% endif %} whitespace-nowrap">
-    {% if last_msg %}{{ last_msg.created_at|timesince }} ago{% else %}{{ conv.created_at|timesince }} ago{% endif %}
-</span>
-</div>
-<div class="flex items-center justify-between">
-<p class="font-body-md text-body-md text-on-surface-variant message-preview {% if not last_msg.is_read and last_msg.sender_type == 'leader' %}font-semibold{% else %}opacity-70{% endif %}">
-    {% if last_msg %}{{ last_msg.body|truncatechars:50 }}{% else %}Start a conversation...{% endif %}
-</p>
-{% if not last_msg.is_read and last_msg.sender_type == 'leader' %}
-<div class="ml-2 w-2.5 h-2.5 bg-secondary rounded-full flex-shrink-0"></div>
-{% endif %}
-</div>
-</div>
-</div>
-</a>
-{% endwith %}
-{% empty %}
-<div class="text-center py-stack-lg">
-<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-container-low flex items-center justify-center">
-<span class="material-symbols-outlined text-4xl text-on-surface-variant/30">chat_bubble</span>
-</div>
-<h3 class="font-title-md text-title-md text-primary mb-2">No conversations yet</h3>
-<p class="font-body-md text-body-md text-on-surface-variant max-w-xs mx-auto">Browse our leaders and start an anonymous conversation whenever you're ready.</p>
-<a href="{% url 'directory' %}" class="inline-block mt-4 bg-secondary text-white font-label-sm py-3 px-6 rounded-full hover:opacity-90 transition-all">Find a Leader</a>
-</div>
-{% endfor %}
-</div>
+      <div class="thread-list" id="chats-list">
+        {% for conv in conversations %}
+          <a class="thread {% if conv.needs_attention %}thread--urgent{% endif %}"
+             href="{% url 'anon_chat' conv.id %}"
+             data-search="{{ conv.leader.name|lower }} {{ conv.last_message_preview|default:''|lower }}">
+            {% if conv.leader.avatar %}
+              <img class="avatar avatar--img {{ conv.leader.name|avatar_tone }}{% if conv.status == 'resolved' %} avatar--soft{% endif %}"
+                   src="{{ conv.leader.avatar.url }}" alt="" width="46" height="46" loading="lazy"/>
+            {% else %}
+              <div class="avatar {{ conv.leader.name|avatar_tone }}{% if conv.status == 'resolved' %} avatar--soft{% endif %}">
+                {{ conv.leader.name|initials }}
+              </div>
+            {% endif %}
+            <div class="thread__body">
+              <div class="thread__top">
+                <span class="thread__alias">{{ conv.leader.name }}</span>
+                <span class="thread__time">
+                  {% if conv.last_message_at %}{{ conv.last_message_at|date:"g:i A" }}{% else %}New{% endif %}
+                </span>
+              </div>
+              <div class="thread__preview">
+                {% if conv.last_message_preview %}{{ conv.last_message_preview }}{% else %}Start the conversation…{% endif %}
+              </div>
+              <div class="thread__meta">
+                <span class="role-badge role-badge--{{ conv.leader.role }}">{{ conv.leader.role_label }}</span>
+                {% if conv.status == 'resolved' %}
+                  <span class="urgent-tag resolved-tag">{% icon "check-check" 11 %} Resolved</span>
+                {% endif %}
+                {% if conv.needs_attention %}
+                  <span class="urgent-tag">{% icon "alert" 11 %} Support flagged</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="thread__tail">
+              {% if conv.status == 'resolved' %}
+                <span class="tick-icon tick-icon--muted">{% icon "check-check" 15 %}</span>
+              {% else %}
+                <span class="tick-icon tick-icon--muted">{% icon "chevron-right" 17 %}</span>
+              {% endif %}
+            </div>
+          </a>
+        {% endfor %}
+      </div>
 
-<!-- Empty State Visual Cue -->
-{% if conversations %}
-<div class="mt-stack-lg text-center opacity-30">
-<span class="material-symbols-outlined text-4xl mb-2">shield_lock</span>
-<p class="font-caption text-caption">End-to-end encrypted & fully anonymous</p>
+      <div class="privacy-note" style="margin-top:18px;margin-bottom:0;">
+        <span class="privacy-note__icon">{% icon "shield" 16 %}</span>
+        <div>
+          <strong>This device remembers your conversations.</strong>
+          They are tied to a private browser token, not to your name. Clearing
+          cookies or deleting a conversation removes access from this device.
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state__icon">{% icon "message" 24 %}</div>
+        <h3>No conversations yet</h3>
+        <p>Enter your room code and choose someone to talk to.</p>
+        <a class="btn btn--primary" style="margin-top:16px;" href="{% url 'welcome' %}">
+          {% icon "key" 15 %} How to get started
+        </a>
+      </div>
+    {% endif %}
+  </main>
+
+  {% include "partials/anon_nav.html" %}
 </div>
-{% endif %}
-</main>
-
-<!-- BottomNavBar -->
-<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center h-20 px-4 pb-safe bg-surface/80 backdrop-blur-md shadow-[0_-10px_30px_rgba(26,43,60,0.05)]">
-<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors px-4 py-1 rounded-xl transition-transform duration-200 active:scale-90" href="{% url 'directory' %}">
-<span class="material-symbols-outlined">group</span>
-<span class="font-label-sm text-label-sm">Leaders</span>
-</a>
-<a class="flex flex-col items-center justify-center text-secondary font-bold bg-secondary-container/20 rounded-xl px-4 py-1 transition-transform duration-200 active:scale-90" href="{% url 'stranger_inbox' %}">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
-<span class="font-label-sm text-label-sm">Inbox</span>
-</a>
-<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-low transition-colors px-4 py-1 rounded-xl transition-transform duration-200 active:scale-90" href="#">
-<span class="material-symbols-outlined">person</span>
-<span class="font-label-sm text-label-sm">Profile</span>
-</a>
-</nav>
-
-<script>
-window.addEventListener('scroll', () => {
-    const header = document.querySelector('.glass-header');
-    if (window.scrollY > 20) {
-        header.classList.add('shadow-sm', 'bg-surface/95');
-    } else {
-        header.classList.remove('shadow-sm', 'bg-surface/95');
-    }
-});
-</script>
+<script src="{% static 'secret/ui.js' %}" defer></script>
 </body>
 </html>

@@ -1,0 +1,45 @@
+{% load chat_extras %}
+{% for person in leaders %}
+  <div class="person-card"
+       data-search="{{ person.name|lower }} {{ person.role_label|lower }} {{ person.title|default:''|lower }}">
+    {% if person.avatar %}
+      <img class="avatar avatar--img {{ person.name|avatar_tone }}" src="{{ person.avatar.url }}"
+           alt="" width="44" height="44" loading="lazy" decoding="async"/>
+    {% elif person.photo %}
+      <img class="avatar avatar--img {{ person.name|avatar_tone }}" src="{{ person.photo.url }}"
+           alt="" width="44" height="44" loading="lazy" decoding="async"/>
+    {% else %}
+      <div class="avatar {{ person.name|avatar_tone }}">{{ person.name|initials }}</div>
+    {% endif %}
+    <div class="person-card__body">
+      <div class="person-card__name">
+        {{ person.name }}
+        {% if person.online_now %}<span class="presence-dot" title="Online now" aria-label="Online now"></span>{% endif %}
+        <span class="role-badge role-badge--{{ person.role }}">{{ person.role_label }}</span>
+      </div>
+      <div class="person-card__title">{{ person.title|default:"Here to listen" }}</div>
+      <div class="person-card__bio">{{ person.bio|default:"Here to listen and support you."|truncatechars:110 }}</div>
+      {% with conv=existing|get_item:person.id %}
+        {% if conv %}
+          <span class="existing-pill">{% icon "message" 11 %} Continue your conversation</span>
+        {% endif %}
+      {% endwith %}
+    </div>
+    <form method="post" action="{% url 'start_chat' room.id person.id %}">
+      {% csrf_token %}
+      <button class="btn btn--primary btn--sm" type="submit">
+        {% with conv=existing|get_item:person.id %}
+          {% if conv %}Continue{% else %}Chat{% endif %}
+        {% endwith %}
+        {% icon "arrow-right" 13 %}
+      </button>
+    </form>
+  </div>
+{% empty %}
+  <div class="empty-state">
+    <div class="empty-state__icon">{% icon "users" 24 %}</div>
+    <h3>No one is available right now</h3>
+    <p>No leaders or counsellors are in this room at the moment. Please check back later.</p>
+    <p class="tiny" style="margin-top:8px;">If you are in danger, call <a href="tel:112" style="font-weight:600;color:var(--danger);">112</a>.</p>
+  </div>
+{% endfor %}

@@ -1,0 +1,38 @@
+<script>
+  (function () {
+    var key = "anylink-theme";
+    var root = document.documentElement;
+
+    function apply(dark) {
+      root.classList.toggle("theme-dark", dark);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) {
+        meta.setAttribute("content", dark ? "#101014" : meta.getAttribute("data-light") || "#ffffff");
+      }
+      document.querySelectorAll("[data-theme-toggle]").forEach(function (button) {
+        button.setAttribute("aria-pressed", dark ? "true" : "false");
+        button.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+      });
+    }
+
+    try {
+      apply(localStorage.getItem(key) === "dark");
+    } catch (error) {
+      apply(false);
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      apply(root.classList.contains("theme-dark"));
+    });
+
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-theme-toggle]");
+      if (!button) return;
+      var dark = !root.classList.contains("theme-dark");
+      try {
+        localStorage.setItem(key, dark ? "dark" : "light");
+      } catch (error) {}
+      apply(dark);
+    });
+  })();
+</script>

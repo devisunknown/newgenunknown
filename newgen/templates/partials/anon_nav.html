@@ -1,0 +1,17 @@
+{% load chat_extras %}
+<nav class="bottom-nav" aria-label="Main navigation">
+  <a class="nav-item{% if nav_active == 'chats' %} nav-item--active{% endif %}"
+     href="{% url 'directory' %}"{% if nav_active == 'chats' %} aria-current="page"{% endif %}>
+    {% icon "message" 20 %}<span>Chats</span>
+  </a>
+  {% if nav_directory_url %}
+    <a class="nav-item{% if nav_active == 'directory' %} nav-item--active{% endif %}"
+       href="{{ nav_directory_url }}"{% if nav_active == 'directory' %} aria-current="page"{% endif %}>
+      {% icon "users" 20 %}<span>Directory</span>
+    </a>
+  {% endif %}
+  <a class="nav-item{% if nav_active == 'how' %} nav-item--active{% endif %}"
+     href="{% url 'welcome' %}"{% if nav_active == 'how' %} aria-current="page"{% endif %}>
+    {% icon "info" 20 %}<span>How it works</span>
+  </a>
+</nav>

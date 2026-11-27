@@ -1,0 +1,134 @@
+{% load static chat_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#ffffff"/>
+<title>Profile · anylink</title>
+<link rel="icon" href="{% static 'secret/favicon.svg' %}" type="image/svg+xml"/>
+<link rel="stylesheet" href="{% static 'secret/app.css' %}"/>
+{% include "partials/theme_boot.html" %}
+</head>
+<body class="app-page">
+<div class="app">
+  <header class="app-header">
+    <div class="app-header__titles">
+      <h1 class="app-title">Profile</h1>
+      <p class="app-sub">How people see you in the room</p>
+    </div>
+    <div class="header-actions">
+      {% include "partials/theme_toggle.html" %}
+    </div>
+  </header>
+
+  <main class="screen">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="{% if message.tags == 'error' %}error-box{% else %}notice-box{% endif %}" role="status">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="card">
+      <div class="profile-hero">
+        {% if leader.avatar %}
+          <img class="profile-avatar" src="{{ leader.avatar.url }}" alt="Your profile photo" width="76" height="76"/>
+        {% else %}
+          <div class="profile-avatar profile-avatar--initials">{{ leader.name|initials }}</div>
+        {% endif %}
+        <div class="profile-hero__text">
+          <h2>{{ leader.name }}</h2>
+          <p>{{ leader.title|default:leader.role_label }}{% if leader.institution %} · {{ leader.institution.name }}{% endif %}</p>
+        </div>
+      </div>
+
+      {% if errors.profile %}<div class="error-box" role="alert">{{ errors.profile }}</div>{% endif %}
+
+      <form method="post" action="{% url 'leader_profile' %}" enctype="multipart/form-data" class="stack">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="profile"/>
+
+        <label class="field" for="avatar">Profile photo
+          <span class="profile-file">
+            A square photo works best. JPG, PNG or WebP up to 5 MB.
+            <input id="avatar" name="avatar" type="file" accept="image/*"/>
+          </span>
+        </label>
+
+        {% if leader.avatar %}
+          <label class="profile-remove">
+            <input type="checkbox" name="remove_photo" value="1"/>
+            Remove my current photo
+          </label>
+        {% endif %}
+
+        <label class="field" for="name">Display name
+          <input id="name" name="name" type="text" maxlength="100" value="{{ leader.name }}" required/>
+        </label>
+
+        <label class="field" for="title">Title
+          <input id="title" name="title" type="text" maxlength="100" value="{{ leader.title }}" placeholder="Community Leader"/>
+        </label>
+
+        <label class="field" for="bio">Short bio
+          <textarea id="bio" name="bio" rows="4" maxlength="1000" placeholder="A sentence about how you listen.">{{ leader.bio }}</textarea>
+        </label>
+
+        <button class="btn btn--primary btn--full" type="submit">
+          {% icon "check" 16 %} Save profile
+        </button>
+      </form>
+    </div>
+
+    <div class="card" id="password" style="margin-top:14px;">
+      <h2 style="font-size:15px;font-weight:650;">Change password</h2>
+      <p class="muted" style="font-size:12px;line-height:1.6;margin:4px 0 14px;">
+        Passwords are stored as salted Argon2 hashes, never as plain text.
+      </p>
+
+      {% if errors.password %}<div class="error-box" role="alert">{{ errors.password }}</div>{% endif %}
+
+      <form method="post" action="{% url 'leader_profile' %}" class="stack">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="password"/>
+
+        <label class="field" for="current_password">Current password
+          <input id="current_password" name="current_password" type="password" autocomplete="current-password" required/>
+        </label>
+        <label class="field" for="new_password">New password
+          <input id="new_password" name="new_password" type="password" autocomplete="new-password" required/>
+        </label>
+        <label class="field" for="confirm_password">Confirm new password
+          <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required/>
+        </label>
+
+        <button class="btn btn--primary btn--full" type="submit">
+          {% icon "lock" 16 %} Update password
+        </button>
+      </form>
+    </div>
+
+    <p class="tiny" style="margin:16px 2px;">
+      <a href="{% url 'leader_inbox' %}" style="color:var(--muted);font-weight:600;">
+        {% icon "arrow-left" 12 %} Back to messages
+      </a>
+    </p>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <a class="nav-item" href="{% url 'leader_inbox' %}">
+      {% icon "inbox" 20 %}<span>Messages</span>
+    </a>
+    <a class="nav-item nav-item--active" href="{% url 'leader_profile' %}" aria-current="page">
+      {% icon "user" 20 %}<span>Profile</span>
+    </a>
+    <a class="nav-item" href="{% url 'logout' %}">
+      {% icon "logout" 20 %}<span>Sign out</span>
+    </a>
+  </nav>
+</div>
+<script src="{% static 'secret/ui.js' %}" defer></script>
+</body>
+</html>

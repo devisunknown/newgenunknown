@@ -26,18 +26,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-insecure-secret-key-change-me")
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = [
     "whispershaker.onrender.com",
     "localhost",
     "127.0.0.1",
+    "testserver",
 ]
+ALLOWED_HOSTS += [h for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://whispershaker.onrender.com",
 ]
-
+CSRF_TRUSTED_ORIGINS += [
+    o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o
+]
 
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -60,6 +64,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    'secret.middleware.AnonymityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -93,25 +98,47 @@ ASGI_APPLICATION = 'newgen.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'), conn_max_age=60)
-} 
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=60)
+    }
+else:
+    # Local development / quick start without any paid database.
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [
-                {
-                    "address": os.environ.get("REDIS_URL"),
-                }
-            ],
-            "capacity": 1000,
-            "expiry": 60,
-            "group_expiry": 86400,
+REDIS_URL = os.environ.get("REDIS_URL")
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [{"address": REDIS_URL}],
+                "capacity": 1000,
+                "expiry": 60,
+                "group_expiry": 86400,
+            },
         },
-    },
-}
+    }
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+    }
+else:
+    # Single-process fallback: works on a free Render web service.
+    CHANNEL_LAYERS = {
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+    }
+    CACHES = {
+        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
+    }
 
 
 
@@ -153,9 +180,23 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STATICFILES_STORAGE = (
-    "whitenoise.storage.CompressedManifestStaticFilesStorage"
-)
+# Compressed but not manifest-based: avoids hard failures when collectstatic
+# has not run yet (common on small hosts) while still serving gzipped assets.
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+
+# Uploaded profile photos (local development and hosts with a disk).
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# Argon2 is the default for new and changed passwords. The PBKDF2 hashers stay
+# behind it so existing hashes keep verifying and are upgraded on next login.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -164,6 +205,53 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 259200  
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_AGE = 259200
+SESSION_COOKIE_SECURE = os.environ.get(
+    "SESSION_COOKIE_SECURE", "False" if DEBUG else "True"
+) == "True"
+CSRF_COOKIE_SECURE = os.environ.get(
+    "CSRF_COOKIE_SECURE", "False" if DEBUG else "True"
+) == "True"
+CSRF_COOKIE_HTTPONLY = False
+
+
+# ---------------------------------------------------------------------------
+# Anonymous chat / institution rooms
+# ---------------------------------------------------------------------------
+ANON_DEVICE_COOKIE = "whisper_device"
+ANON_DEVICE_COOKIE_AGE = 60 * 60 * 24 * 365
+ROOM_ACCESS_HOURS = 12
+ROOM_CODE_MAX_ATTEMPTS = 5
+ROOM_CODE_LOCKOUT_MINUTES = 15
+
+# Brute-force guard on the room code, shared by everyone entering one room and
+# kept without any identifier (the app strips addresses and user agents).  Once
+# the budget is spent, entry pauses for ROOM_CODE_LOCKOUT_MINUTES and each
+# repeat pause doubles up to ROOM_CODE_MAX_LOCKOUT_HOURS.  A 4-digit code then
+# takes weeks of guessing rather than minutes.
+ROOM_CODE_ROOM_MAX_FAILURES = 20
+ROOM_CODE_ROOM_WINDOW_MINUTES = 15
+ROOM_CODE_MAX_LOCKOUT_HOURS = 24
+MESSAGE_RATE_LIMIT_PER_MINUTE = 20
+MESSAGE_RATE_LIMIT_PER_HOUR = 120
+
+# Configurable so a deployment in another country can change them without
+# touching code. Ghana defaults.
+EMERGENCY_HELPLINES = [
+    {"label": "Emergency services (Ghana)", "number": "112", "tel": "112"},
+    {"label": "Police (Ghana)", "number": "191", "tel": "191"},
+    {"label": "Ambulance (Ghana)", "number": "193", "tel": "193"},
+]
+EMERGENCY_NOTE = (
+    "If you are in immediate danger, call 112. You can also ask the police "
+    "for DOVVSU if you are reporting abuse."
+)
+
+# Email/push is only sent when the host already has an email backend
+# configured. The app itself only needs the in-app badge.
+LEADER_EMAIL_NOTIFICATIONS = os.environ.get(
+    "LEADER_EMAIL_NOTIFICATIONS", "False"
+) == "True"
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL", "anylink <noreply@whispershaker.onrender.com>"
+)

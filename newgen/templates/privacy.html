@@ -1,0 +1,220 @@
+{% load static chat_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#ffffff"/>
+<title>Privacy · anylink</title>
+<meta name="description" content="What anylink stores, who can see your conversation, and the controls you have. No account, no name, no email."/>
+<link rel="icon" href="{% static 'secret/favicon.svg' %}" type="image/svg+xml"/>
+<link rel="stylesheet" href="{% static 'secret/app.css' %}"/>
+</head>
+<body class="landing-page policy-page">
+<header class="site-nav">
+  <a class="landing-brand" href="{% url 'landing' %}" aria-label="anylink home">
+    <span class="landing-brand__ghost">{% ghost_mark 27 %}</span>
+    <span class="landing-brand__word">anylink</span>
+  </a>
+  <nav class="site-nav__links" aria-label="Sections">
+    <a href="{% url 'landing' %}#how">How it works</a>
+    <a href="{% url 'landing' %}#leaders">For leaders</a>
+  </nav>
+  <div class="site-nav__actions">
+    <a class="site-link" href="{% url 'signin' %}">Sign in</a>
+    <a class="btn btn--primary btn--sm" href="{% url 'landing' %}#how">How it works</a>
+  </div>
+</header>
+
+<main class="policy">
+  <div class="policy-hero">
+    <p class="eyebrow">Privacy</p>
+    <h1 class="policy-title">Privacy, in plain language.</h1>
+    <p class="policy-lede">
+      anylink exists so someone can ask for help without handing over who they
+      are. This page explains exactly what that means in practice — what is
+      stored, who can see it, and what you can remove.
+    </p>
+    <p class="policy-meta">Last updated 27 November 2026 · Applies to every anylink room</p>
+
+    <div class="policy-short">
+      <div class="policy-short__item">
+        <span>{% icon "user" 16 %}</span>
+        <p><strong>No account.</strong> No name, email, phone number or password.</p>
+      </div>
+      <div class="policy-short__item">
+        <span>{% icon "message" 16 %}</span>
+        <p><strong>Alias only.</strong> Leaders see a random alias, never you.</p>
+      </div>
+      <div class="policy-short__item">
+        <span>{% icon "trash" 16 %}</span>
+        <p><strong>You can delete.</strong> Ending a conversation removes it.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="policy-layout">
+    <aside class="policy-toc" aria-label="On this page">
+      <p class="policy-toc__title">On this page</p>
+      <a href="#collect">What we never collect</a>
+      <a href="#entry">Getting into a room</a>
+      <a href="#stored">What is stored</a>
+      <a href="#who">Who can read it</a>
+      <a href="#cookies">Cookies on this device</a>
+      <a href="#retention">How long it stays</a>
+      <a href="#safety">Safety and emergencies</a>
+      <a href="#choices">Your choices</a>
+      <a href="#changes">Changes and contact</a>
+    </aside>
+
+    <div class="policy-body">
+      <section class="policy-section" id="collect">
+        <h2>What we never collect</h2>
+        <p>
+          You do not create an account, and we do not ask for your name, email
+          address, phone number, date of birth or a password. We do not store
+          your IP address, browser fingerprint or location, and there are no
+          advertising or analytics trackers on these pages.
+        </p>
+        <p>
+          Because there is no account, there is also no “forgot password” and no
+          profile to complete. The only thing that identifies your device is a
+          random token kept in a cookie (see <a href="#cookies">cookies</a>).
+        </p>
+      </section>
+
+      <section class="policy-section" id="entry">
+        <h2>Getting into a room</h2>
+        <p>
+          Each room has a random identifier in its link and a short numeric code
+          — four or six digits — that the organisation gives you. The link finds
+          the room; the code proves you were invited. Both are needed.
+        </p>
+        <p>
+          Once a code is accepted, this browser can open that room's leader
+          directory for 12 hours. After that you enter the code again. Your
+          organisation can change the code at any time, which immediately stops
+          old codes from working.
+        </p>
+      </section>
+
+      <section class="policy-section" id="stored">
+        <h2>What is stored</h2>
+        <ul>
+          <li><strong>An alias</strong> such as “Quiet Lion 42”, generated for you. It is not derived from anything about you.</li>
+          <li><strong>Your messages</strong> in that room, with the time they were sent and whether they were delivered and read.</li>
+          <li><strong>A hashed device token</strong> so this browser can find its conversations again. The raw token stays in your cookie; the database only holds a one-way hash.</li>
+          <li><strong>A safety flag</strong> if a message suggests a risk of harm. It marks the conversation for the leaders; it does not identify you.</li>
+        </ul>
+        <p>
+          We do not store your name, contacts, photos, files or precise location.
+          Messages you write are visible to the person you chose to talk to.
+        </p>
+      </section>
+
+      <section class="policy-section" id="who">
+        <h2>Who can read your conversation</h2>
+        <p>
+          Only the leader or counsellor you picked can read the thread. If they
+          are unavailable, they may transfer it to another leader in the same
+          room; the conversation shows a short system note when that happens.
+        </p>
+        <p>
+          People who administer the room can add or remove leaders, see the room
+          code and pause the room, but they do not automatically get access to
+          conversations. No conversation is ever listed publicly.
+        </p>
+        <p>
+          As with any conversation, the person on the other side could repeat
+          what you say. anylink cannot control that, so share only what you are
+          comfortable sharing.
+        </p>
+      </section>
+
+      <section class="policy-section" id="cookies">
+        <h2>Cookies on this device</h2>
+        <ul>
+          <li><strong>Session cookie</strong> — keeps you signed in as a leader, or remembers that you entered a room code. It expires after 3 days, or when you sign out.</li>
+          <li><strong>Device token cookie</strong> — a random, HTTP-only value that links this browser to your alias and conversations. It can last up to a year.</li>
+          <li><strong>No third-party cookies, pixels or tracking scripts.</strong></li>
+        </ul>
+        <p>
+          Clearing cookies removes the device token. The conversations still
+          exist for the leaders, but this browser can no longer find them, and we
+          cannot recover that link for you.
+        </p>
+      </section>
+
+      <section class="policy-section" id="retention">
+        <h2>How long it stays</h2>
+        <p>
+          A conversation stays until you delete it from the chat menu, or until
+          the organisation removes it. Deleting a conversation deletes its
+          messages and your alias from the active database.
+        </p>
+        <p>
+          A leader may keep a safety report if there was a concern about harm.
+          Reports keep the alias and the reason, not your identity, because we do
+          not have it. Room codes and access records are kept only as long as
+          the room exists.
+        </p>
+      </section>
+
+      <section class="policy-section" id="safety">
+        <h2>Safety and emergencies</h2>
+        <p>
+          anylink is not an emergency service and rooms are not monitored around
+          the clock. If you are in immediate danger, call
+          <a href="tel:112">112</a> (emergency), <a href="tel:191">191</a>
+          (police) or <a href="tel:193">193</a> (ambulance).
+        </p>
+        <p>
+          Messages that suggest a risk of harm are flagged for the leaders in
+          that room so they can respond sooner. The flag is visible to them; it
+          is not shared with anyone outside the room.
+        </p>
+      </section>
+
+      <section class="policy-section" id="choices">
+        <h2>Your choices</h2>
+        <ul>
+          <li><strong>Delete the thread</strong> from the conversation menu whenever you want.</li>
+          <li><strong>Leave the room</strong> by clearing this site's cookies or letting the 12-hour access window expire.</li>
+          <li><strong>Ask for a new code</strong> through the organisation that invited you if the old one has been shared too widely.</li>
+          <li><strong>Say no</strong> to any question. You never have to give your name or contact details to use anylink.</li>
+        </ul>
+      </section>
+
+      <section class="policy-section" id="changes">
+        <h2>Changes and contact</h2>
+        <p>
+          If this policy changes, the date at the top changes too. Material
+          changes will be reflected here before they apply to new conversations.
+        </p>
+        <p>
+          Questions about a specific room — who runs it, who its leaders are, or
+          what it keeps — go to the school, church or organisation that shared
+          your invitation. They control the room; anylink provides the software.
+        </p>
+        <a class="btn btn--primary" style="margin-top:18px;" href="{% url 'landing' %}">
+          {% icon "arrow-left" 15 %} Back to anylink
+        </a>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="landing-footer">
+  <a class="landing-brand" href="{% url 'landing' %}" aria-label="anylink home">
+    <span class="landing-brand__ghost">{% ghost_mark 22 %}</span>
+    <span class="landing-brand__word" style="font-size:17px;">anylink</span>
+  </a>
+  <nav class="landing-footer__links" aria-label="Footer">
+    <a href="{% url 'landing' %}#how">How it works</a>
+    <a href="{% url 'privacy' %}">Privacy</a>
+    <a href="{% url 'signin' %}">Leader sign in</a>
+  </nav>
+  <p class="landing-footer__copy">Private support, one link away.</p>
+</footer>
+</body>
+</html>
