@@ -128,7 +128,7 @@ def noop(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("secret", "0004_leader_photo_message_secret_mess_convers_c83f2d_idx"),
+        ("secret", "0003_anonymous_conversation_anonymous_and_more"),
     ]
 
     operations = [
