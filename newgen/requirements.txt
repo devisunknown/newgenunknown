@@ -85,3 +85,5 @@ whitenoise==6.12.0
 yt-dlp==2026.7.4
 zope.interface==8.5
 argon2-cffi==25.1.0
+cloudinary
+django-cloudinary-storage
