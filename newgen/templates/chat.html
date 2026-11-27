@@ -8,6 +8,7 @@
 <meta name="csrf-token" content="{{ csrf_token }}"/>
 <title>{% if is_leader_view %}{{ alias }} · anylink{% else %}{{ leader.name }} · anylink{% endif %}</title>
 <link rel="icon" href="{% static 'secret/favicon.svg' %}" type="image/svg+xml"/>
+{% include "partials/pwa_head.html" %}
 <link rel="stylesheet" href="{% static 'secret/app.css' %}"/>
 {% include "partials/theme_boot.html" %}
 </head>

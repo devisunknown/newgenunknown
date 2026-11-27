@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#ffffff"/>
 <title>Leader directory · {{ institution.name }}</title>
 <link rel="icon" href="{% static 'secret/favicon.svg' %}" type="image/svg+xml"/>
+{% include "partials/pwa_head.html" %}
 <link rel="stylesheet" href="{% static 'secret/app.css' %}"/>
 {% include "partials/theme_boot.html" %}
 </head>
@@ -83,5 +84,6 @@
 </div>
 <script src="{% static 'secret/directory.js' %}" defer></script>
 <script src="{% static 'secret/ui.js' %}" defer></script>
+{% include "partials/install_prompt.html" %}
 </body>
 </html>

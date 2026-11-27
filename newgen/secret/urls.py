@@ -6,6 +6,9 @@ urlpatterns = [
     # Public pages. The person's own chats live at /inbox/.
     path("", views.landing, name="landing"),
     path("privacy/", views.privacy, name="privacy"),
+    # Root-served so the service worker controls every page.
+    path("manifest.webmanifest", views.web_manifest, name="manifest"),
+    path("sw.js", views.service_worker, name="service_worker"),
     path("inbox/", views.stranger_inbox, name="directory"),
     path("welcome/", views.leader_directory, name="welcome"),
 

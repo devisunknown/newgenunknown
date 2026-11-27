@@ -27,6 +27,11 @@
       Sign in to your leader or counsellor inbox. Your quiet presence makes a difference.
     </p>
 
+    {% if messages %}
+      {% for message in messages %}
+        <div class="{% if message.tags == 'error' %}error-box{% else %}notice-box{% endif %}" role="status">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
     {% if error %}<div class="error-box" role="alert">{{ error }}</div>{% endif %}
 
     <form method="post" action="{% url 'signin' %}" class="stack">

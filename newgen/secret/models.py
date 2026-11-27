@@ -128,6 +128,9 @@ class Leader(models.Model):
     )
     is_active = models.BooleanField(default=True)
     is_online = models.BooleanField(default=False)
+    # Stamped into the session at sign-in.  A password change rotates it, which
+    # ends every session opened with the old password, on every device.
+    session_epoch = models.UUIDField(default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     photo = CloudinaryField(
         "image", blank=True, null=True, folder="whisperline/leaders"

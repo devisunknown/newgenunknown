@@ -103,9 +103,14 @@ class AccountSecurityTests(ChatTestBase):
             },
         )
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("signin"))
         self.leader.refresh_from_db()
         self.assertTrue(self.leader.check_password("brand-new-password-9"))
         self.assertTrue(self.leader.password.startswith("argon2$"))
+        # The old session is gone: the inbox asks them to sign in again.
+        self.assertEqual(
+            self.client.get(reverse("leader_inbox")).status_code, 302
+        )
 
     def test_profile_requires_a_leader_session(self):
         response = self.client.get(reverse("leader_profile"))
@@ -236,6 +241,54 @@ class LeaderWorkflowTests(ChatTestBase):
         self.assertEqual(response.status_code, 302)
         self.leader.refresh_from_db()
         self.assertTrue(self.leader.check_password("brand-new-password-9"))
+
+    def test_password_change_ends_sessions_on_every_device(self):
+        other_device = Client()
+        other_device.post(
+            reverse("signin"),
+            {"email": self.leader.email, "password": "password123"},
+        )
+        self.assertEqual(
+            other_device.get(reverse("leader_inbox")).status_code, 200
+        )
+
+        self.sign_in(self.leader)
+        self.leader.set_password("old-password-123")
+        self.leader.save(update_fields=["password"])
+        response = self.client.post(
+            reverse("leader_profile"),
+            {
+                "section": "password",
+                "current_password": "old-password-123",
+                "new_password": "brand-new-password-9",
+                "confirm_password": "brand-new-password-9",
+            },
+        )
+        self.assertEqual(response.url, reverse("signin"))
+
+        # This device and the other one both have to sign in again.
+        self.assertEqual(
+            self.client.get(reverse("leader_inbox")).status_code, 302
+        )
+        other_device.get(reverse("leader_inbox"))
+        self.assertEqual(
+            other_device.get(reverse("leader_inbox")).status_code, 302
+        )
+
+        # The old password is dead, the new one signs in.
+        retry = other_device.post(
+            reverse("signin"),
+            {"email": self.leader.email, "password": "password123"},
+        )
+        self.assertEqual(retry.status_code, 200)
+        signed_in = other_device.post(
+            reverse("signin"),
+            {"email": self.leader.email, "password": "brand-new-password-9"},
+        )
+        self.assertEqual(signed_in.status_code, 302)
+        self.assertEqual(
+            other_device.get(reverse("leader_inbox")).status_code, 200
+        )
 
     def test_leader_profile_updates_name_and_title(self):
         self.sign_in(self.leader)
@@ -538,3 +591,46 @@ class SessionStorageTests(ChatTestBase):
             self.client.get(reverse("anon_chat", args=[self.conversation.id])).status_code,
             404,
         )
+
+
+class InstallableAppTests(ChatTestBase):
+    """The add-to-home-screen pieces: manifest, service worker, prompt."""
+
+    static_dir = settings.BASE_DIR / "secret" / "static" / "secret"
+
+    def test_manifest_is_served_as_a_web_app_manifest(self):
+        response = self.client.get(reverse("manifest"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/manifest+json")
+
+        data = json.loads(response.content)
+        self.assertEqual(data["name"], "anylink")
+        self.assertEqual(data["start_url"], "/")
+        self.assertEqual(data["scope"], "/")
+        self.assertEqual(data["display"], "standalone")
+        sizes = {icon["sizes"] for icon in data["icons"]}
+        self.assertIn("192x192", sizes, "Android install needs a 192px icon")
+        self.assertIn("512x512", sizes, "Android install needs a 512px icon")
+        for icon in data["icons"]:
+            self.assertTrue(
+                (self.static_dir / icon["src"]).is_file(),
+                f"missing icon file {icon['src']}",
+            )
+
+    def test_service_worker_is_served_from_the_site_root(self):
+        response = self.client.get("/sw.js")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/javascript", response["Content-Type"])
+        # Root scope, so one worker covers every page.
+        self.assertEqual(response["Service-Worker-Allowed"], "/")
+        self.assertIn("addEventListener", response.content.decode())
+
+    def test_entering_a_room_offers_the_home_screen_prompt(self):
+        self.enter_room()
+        page = self.client.get(reverse("room_directory", args=[self.room.id]))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'rel="manifest"')
+        self.assertContains(page, "apple-touch-icon")
+        self.assertContains(page, 'id="install-sheet"')
+        self.assertContains(page, "install.js")
+        self.assertContains(page, "Add to Home Screen")

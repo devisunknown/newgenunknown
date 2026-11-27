@@ -1,5 +1,7 @@
 import json
+import uuid
 from functools import wraps
+from pathlib import Path
 from uuid import UUID
 
 from django.conf import settings
@@ -8,7 +10,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count, Q
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -86,11 +88,17 @@ def _current_leader(request):
     leader_id = request.session.get("leader_id")
     if not leader_id:
         return None
-    return (
+    leader = (
         Leader.objects.select_related("institution")
         .filter(id=leader_id, is_active=True)
         .first()
     )
+    if not leader:
+        return None
+    # A session stamped before the last password change no longer counts.
+    if request.session.get("session_epoch") != str(leader.session_epoch):
+        return None
+    return leader
 
 
 def leader_required(view):
@@ -650,6 +658,7 @@ def leader_signin(request):
             # become the id this leader is authenticated under.
             request.session.cycle_key()
             request.session["leader_id"] = str(leader.id)
+            request.session["session_epoch"] = str(leader.session_epoch)
             return redirect("leader_inbox")
         return render(
             request,
@@ -785,11 +794,15 @@ def leader_profile(request):
                     errors["password"] = " ".join(exc.messages)
                 else:
                     leader.set_password(new)
-                    leader.save(update_fields=["password"])
+                    # Ends this session and every other one opened with the old
+                    # password; everyone signs in again with the new one.
+                    leader.session_epoch = uuid.uuid4()
+                    leader.save(update_fields=["password", "session_epoch"])
+                    request.session.flush()
                     django_messages.success(
-                        request, "Your password has been updated."
+                        request, "Your password has been updated. Sign in again."
                     )
-                    return redirect("leader_profile")
+                    return redirect("signin")
         else:
             name = (request.POST.get("name") or "").strip()
             title = (request.POST.get("title") or "").strip()
@@ -1375,4 +1388,44 @@ def send_message(request, conv_id):
             "sender_type": message.sender_type,
             "created_at": message.created_at.isoformat(),
         }
+    )
+
+
+# ---------------------------------------------------------------------------
+# Installable app
+# ---------------------------------------------------------------------------
+
+_ASSET_CACHE = {}
+
+
+def _static_asset(name, content_type, **headers):
+    """Serve one file from the app's own static folder with a fixed type.
+
+    The manifest and the service worker have to be served from the site root
+    (a service worker only controls pages below its own URL) and their content
+    types are not worth leaving to the host's mime table.
+    """
+    body = _ASSET_CACHE.get(name)
+    if body is None:
+        path = Path(settings.BASE_DIR) / "secret" / "static" / "secret" / name
+        body = path.read_text(encoding="utf-8")
+        _ASSET_CACHE[name] = body
+    response = HttpResponse(body, content_type=content_type)
+    for key, value in headers.items():
+        response[key.replace("_", "-")] = value
+    return response
+
+
+@require_GET
+def web_manifest(request):
+    return _static_asset("manifest.webmanifest", "application/manifest+json")
+
+
+@require_GET
+def service_worker(request):
+    return _static_asset(
+        "sw.js",
+        "text/javascript",
+        Service_Worker_Allowed="/",
+        Cache_Control="no-cache",
     )
