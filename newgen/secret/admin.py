@@ -91,7 +91,7 @@ class RoomAdmin(admin.ModelAdmin):
 @admin.register(Leader)
 class LeaderAdmin(admin.ModelAdmin):
     list_display = (
-        "photo_thumb",
+        "avatar_thumb",
         "name",
         "title",
         "role",
@@ -104,11 +104,10 @@ class LeaderAdmin(admin.ModelAdmin):
     list_display_links = ("name",)
     list_editable = ("institution", "role", "is_active")
     search_fields = ("name", "email")
-    readonly_fields = ("photo_preview", "created_at")
+    readonly_fields = ("avatar_preview", "created_at")
     fields = (
         "avatar",
-        "photo",
-        "photo_preview",
+        "avatar_preview",
         "institution",
         "name",
         "email",
@@ -122,36 +121,25 @@ class LeaderAdmin(admin.ModelAdmin):
         "created_at",
     )
 
-    def photo_thumb(self, obj):
-        if obj.avatar:
+    def avatar_thumb(self, obj):
+        if obj.avatar_url:
             return format_html(
                 '<img src="{}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" />',
-                obj.avatar.url,
-            )
-        if obj.photo:
-            url = obj.photo.build_url(
-                width=40, height=40, crop="fill", gravity="face"
-            )
-            return format_html(
-                '<img src="{}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" />',
-                url,
+                obj.avatar_url,
             )
         return "—"
 
-    photo_thumb.short_description = "Photo"
+    avatar_thumb.short_description = "Photo"
 
-    def photo_preview(self, obj):
-        if obj.photo:
-            url = obj.photo.build_url(
-                width=200, height=200, crop="fill", gravity="face"
-            )
+    def avatar_preview(self, obj):
+        if obj.avatar_url:
             return format_html(
                 '<img src="{}" style="width:200px;height:200px;border-radius:12px;object-fit:cover;" />',
-                url,
+                obj.avatar_url,
             )
         return "No photo uploaded yet"
 
-    photo_preview.short_description = "Current photo"
+    avatar_preview.short_description = "Current photo"
 
     def save_model(self, request, obj, form, change):
         if "password" in form.changed_data:

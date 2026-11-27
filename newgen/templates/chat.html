@@ -23,8 +23,8 @@
     <div class="chat-peer">
       {% if is_leader_view %}
         <div class="avatar avatar--sm {{ alias|avatar_tone }}">{{ alias|initials }}</div>
-      {% elif leader.avatar %}
-        <img class="avatar avatar--sm avatar--img" src="{{ leader.avatar.url }}" alt="" width="32" height="32"/>
+      {% elif leader.avatar_url %}
+        <img class="avatar avatar--sm avatar--img" src="{{ leader.avatar_url }}" alt="" width="32" height="32"/>
       {% else %}
         <div class="avatar avatar--sm {{ leader.name|avatar_tone }}">{{ leader.name|initials }}</div>
       {% endif %}

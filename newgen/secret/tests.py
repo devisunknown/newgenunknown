@@ -634,3 +634,40 @@ class InstallableAppTests(ChatTestBase):
         self.assertContains(page, 'id="install-sheet"')
         self.assertContains(page, "install.js")
         self.assertContains(page, "Add to Home Screen")
+
+
+class LeaderAvatarTests(ChatTestBase):
+    """One photo field, and a row pointing at a lost file must not break pages."""
+
+    def test_leader_has_a_single_photo_field(self):
+        field_names = {f.name for f in Leader._meta.get_fields()}
+        self.assertIn("avatar", field_names)
+        self.assertNotIn("photo", field_names)
+
+    def test_avatar_url_is_empty_when_the_file_is_gone(self):
+        self.leader.avatar = "leaders/does-not-exist.jpeg"
+        self.leader.save(update_fields=["avatar"])
+        self.assertEqual(self.leader.avatar_url, "")
+
+        self.enter_room()
+        page = self.client.get(reverse("room_directory", args=[self.room.id]))
+        self.assertEqual(page.status_code, 200)
+        # Falls back to initials instead of a broken <img>.
+        self.assertNotContains(page, "leaders/does-not-exist.jpeg")
+        self.assertContains(page, "TL")
+
+    def test_avatar_url_is_returned_when_the_file_exists(self):
+        import shutil
+        import tempfile
+        from django.core.files.base import ContentFile
+        from django.test import override_settings
+
+        media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media_root, True)
+        with override_settings(MEDIA_ROOT=media_root):
+            self.leader.avatar.save(
+                "photo.png", ContentFile(b"\x89PNG\r\n\x1a\n"), save=True
+            )
+            leader = Leader.objects.get(pk=self.leader.pk)
+            self.assertEqual(leader.avatar_url, leader.avatar.url)
+            self.assertTrue(leader.avatar_url.startswith(settings.MEDIA_URL))

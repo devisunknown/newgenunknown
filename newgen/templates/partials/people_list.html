@@ -2,11 +2,8 @@
 {% for person in leaders %}
   <div class="person-card"
        data-search="{{ person.name|lower }} {{ person.role_label|lower }} {{ person.title|default:''|lower }}">
-    {% if person.avatar %}
-      <img class="avatar avatar--img {{ person.name|avatar_tone }}" src="{{ person.avatar.url }}"
-           alt="" width="44" height="44" loading="lazy" decoding="async"/>
-    {% elif person.photo %}
-      <img class="avatar avatar--img {{ person.name|avatar_tone }}" src="{{ person.photo.url }}"
+    {% if person.avatar_url %}
+      <img class="avatar avatar--img {{ person.name|avatar_tone }}" src="{{ person.avatar_url }}"
            alt="" width="44" height="44" loading="lazy" decoding="async"/>
     {% else %}
       <div class="avatar {{ person.name|avatar_tone }}">{{ person.name|initials }}</div>

@@ -50,9 +50,9 @@
           <a class="thread {% if conv.needs_attention %}thread--urgent{% endif %}"
              href="{% url 'anon_chat' conv.id %}"
              data-search="{{ conv.leader.name|lower }} {{ conv.last_message_preview|default:''|lower }}">
-            {% if conv.leader.avatar %}
+            {% if conv.leader.avatar_url %}
               <img class="avatar avatar--img {{ conv.leader.name|avatar_tone }}{% if conv.status == 'resolved' %} avatar--soft{% endif %}"
-                   src="{{ conv.leader.avatar.url }}" alt="" width="46" height="46" loading="lazy"/>
+                   src="{{ conv.leader.avatar_url }}" alt="" width="46" height="46" loading="lazy"/>
             {% else %}
               <div class="avatar {{ conv.leader.name|avatar_tone }}{% if conv.status == 'resolved' %} avatar--soft{% endif %}">
                 {{ conv.leader.name|initials }}

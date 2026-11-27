@@ -7,7 +7,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
-from cloudinary.models import CloudinaryField
 
 from .randomizers import random_alias, random_room_code
 
@@ -132,9 +131,6 @@ class Leader(models.Model):
     # ends every session opened with the old password, on every device.
     session_epoch = models.UUIDField(default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    photo = CloudinaryField(
-        "image", blank=True, null=True, folder="whisperline/leaders"
-    )
     avatar = models.ImageField(
         upload_to="leaders/",
         blank=True,
@@ -144,6 +140,24 @@ class Leader(models.Model):
 
     class Meta:
         ordering = ["name"]
+
+    @property
+    def avatar_url(self):
+        """The photo's URL, or "" when the row points at a file that is gone.
+
+        Uploads live on local disk, and hosts that rebuild the app (Render, most
+        PaaS) wipe them: the row keeps the old name, so a plain .url would send
+        the browser after a 404 and the person would show a broken image.  The
+        templates fall back to their initials instead.
+        """
+        if not self.avatar:
+            return ""
+        try:
+            if not self.avatar.storage.exists(self.avatar.name):
+                return ""
+            return self.avatar.url
+        except (OSError, ValueError):
+            return ""
 
     HASH_PREFIXES = ("argon2$", "pbkdf2_", "bcrypt", "scrypt")
 
