@@ -2,6 +2,7 @@ from django.urls import path
 
 from . import views
 
+
 urlpatterns = [
     # Public pages. The person's own chats live at /inbox/.
     path("", views.landing, name="landing"),
@@ -10,6 +11,13 @@ urlpatterns = [
     path("manifest.webmanifest", views.web_manifest, name="manifest"),
     path("sw.js", views.service_worker, name="service_worker"),
     path("inbox/", views.stranger_inbox, name="directory"),
+    # Anonymous problem board: anyone can post and reply without an account.
+    path("anonboard/", views.anon_board, name="anon_board"),
+    path(
+        "anonboard/<uuid:post_id>/",
+        views.anon_board_post,
+        name="anon_board_post",
+    ),
     path("welcome/", views.leader_directory, name="welcome"),
 
     # Institution rooms — the room UUID is the invitation key.

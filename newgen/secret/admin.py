@@ -6,6 +6,8 @@ from .models import (
     AbuseReport,
     Anonymous,
     BlockedAlias,
+    BoardComment,
+    BoardPost,
     Conversation,
     Institution,
     Leader,
@@ -214,6 +216,21 @@ class AbuseReportAdmin(admin.ModelAdmin):
     )
     list_filter = ("institution", "resolved")
     search_fields = ("alias", "reason")
+
+
+@admin.register(BoardPost)
+class BoardPostAdmin(admin.ModelAdmin):
+    list_display = ("alias", "title", "created_at", "bumped_at", "is_hidden")
+    list_filter = ("is_hidden",)
+    search_fields = ("alias", "title", "body")
+    readonly_fields = ("alias", "created_at", "bumped_at")
+
+
+@admin.register(BoardComment)
+class BoardCommentAdmin(admin.ModelAdmin):
+    list_display = ("alias", "post", "created_at", "is_hidden")
+    list_filter = ("is_hidden",)
+    search_fields = ("alias", "body")
 
 
 @admin.register(RoomCodeAttempt)

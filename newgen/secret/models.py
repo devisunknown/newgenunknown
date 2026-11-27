@@ -387,6 +387,63 @@ class AbuseReport(models.Model):
         return f"Report: {self.alias or 'anonymous'}"
 
 
+class BoardPost(models.Model):
+    """A problem posted anonymously on the anonboard.
+
+    The alias is a fresh random name made when the post is written, so nothing
+    links one post to another or to the device that wrote it.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    alias = models.CharField(max_length=64, blank=True, default=random_alias)
+    title = models.CharField(max_length=140, blank=True, default="")
+    body = models.TextField()
+    is_hidden = models.BooleanField(
+        default=False,
+        help_text="Hidden posts disappear from the board but stay in the database.",
+    )
+    bumped_at = models.DateTimeField(default=timezone.now, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-bumped_at"]
+        indexes = [models.Index(fields=["is_hidden", "-bumped_at"])]
+
+    def __str__(self):
+        return f"{self.alias}: {self.body[:40]}"
+
+    @property
+    def number(self):
+        return str(self.id).split("-")[0]
+
+    def bump(self):
+        self.bumped_at = timezone.now()
+        self.save(update_fields=["bumped_at"])
+
+
+class BoardComment(models.Model):
+    """A reply on the anonboard. Aliases are random per comment."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    post = models.ForeignKey(
+        BoardPost, on_delete=models.CASCADE, related_name="comments"
+    )
+    alias = models.CharField(max_length=64, blank=True, default=random_alias)
+    body = models.TextField()
+    is_hidden = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.alias}: {self.body[:40]}"
+
+    @property
+    def number(self):
+        return str(self.id).split("-")[0]
+
+
 class RoomCodeAttempt(models.Model):
     """Persistent lockout state for room-code entry.
 

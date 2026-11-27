@@ -4,6 +4,10 @@
      href="{% url 'directory' %}"{% if nav_active == 'chats' %} aria-current="page"{% endif %}>
     {% icon "message" 20 %}<span>Chats</span>
   </a>
+  <a class="nav-item{% if nav_active == 'board' %} nav-item--active{% endif %}"
+     href="{% url 'anon_board' %}"{% if nav_active == 'board' %} aria-current="page"{% endif %}>
+    {% icon "grid" 20 %}<span>Board</span>
+  </a>
   {% if nav_directory_url %}
     <a class="nav-item{% if nav_active == 'directory' %} nav-item--active{% endif %}"
        href="{{ nav_directory_url }}"{% if nav_active == 'directory' %} aria-current="page"{% endif %}>

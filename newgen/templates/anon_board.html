@@ -1,0 +1,78 @@
+{% load static chat_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#ffffff"/>
+<title>anonboard · anylink</title>
+<link rel="icon" href="{% static 'secret/favicon.svg' %}" type="image/svg+xml"/>
+{% include "partials/pwa_head.html" %}
+<link rel="stylesheet" href="{% static 'secret/app.css' %}"/>
+{% include "partials/theme_boot.html" %}
+</head>
+<body class="app-page">
+<div class="app">
+  <header class="app-header">
+    <div class="app-header__titles">
+      <h1 class="app-title">anonboard</h1>
+      <p class="app-sub">
+        {% icon "eye-off" 12 %} Post it. No name, no account.
+      </p>
+    </div>
+    <div class="header-actions">
+      {% include "partials/theme_toggle.html" %}
+    </div>
+  </header>
+
+  <main class="screen">
+    <form class="board-compose card" method="post" action="{% url 'anon_board' %}">
+      {% csrf_token %}
+      <label class="field-label" for="board-title">Your problem</label>
+      <input class="board-input" type="text" id="board-title" name="title"
+             maxlength="140" placeholder="One line, if you want a title"
+             value="{{ form_title }}"/>
+      <label class="field-label" for="board-body">Say it in your own words</label>
+      <textarea id="board-body" name="body" maxlength="2000" required
+                placeholder="What is going on? People here have been through it too.">{{ form_body }}</textarea>
+      {% if error %}<p class="board-error">{{ error }}</p>{% endif %}
+      <div class="board-compose__foot">
+        <span class="board-compose__note">A new random name is made for every post.</span>
+        <button class="btn btn--primary btn--sm" type="submit">
+          {% icon "send" 15 %} Post
+        </button>
+      </div>
+    </form>
+
+    {% if posts %}
+      <div class="board-list">
+        {% for post in posts %}
+          <a class="board-post" href="{% url 'anon_board_post' post.id %}">
+            <div class="board-post__head">
+              <span class="board-alias">{{ post.alias }}</span>
+              <span class="board-number">No. {{ post.number }}</span>
+              <span class="board-time">{{ post.created_at|clock12 }}</span>
+            </div>
+            {% if post.title %}<h3 class="board-title">{{ post.title }}</h3>{% endif %}
+            <p class="board-body">{{ post.body|truncatechars:220 }}</p>
+            <div class="board-meta">
+              {% icon "message" 13 %}
+              <span>{{ post.comment_total }} repl{{ post.comment_total|pluralize:"y,ies" }}</span>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state__icon">{% icon "message" 24 %}</div>
+        <h3>Nothing posted yet</h3>
+        <p>Be the first to put a problem on the board. Nobody will know it was you.</p>
+      </div>
+    {% endif %}
+  </main>
+
+  {% include "partials/anon_nav.html" %}
+</div>
+<script src="{% static 'secret/ui.js' %}" defer></script>
+</body>
+</html>

@@ -9,7 +9,16 @@ from django.utils import timezone
 
 from newgen.asgi import application
 
-from secret.models import Institution, Room, Leader, Anonymous, Conversation, Message
+from secret.models import (
+    Anonymous,
+    BoardComment,
+    BoardPost,
+    Conversation,
+    Institution,
+    Leader,
+    Message,
+    Room,
+)
 
 
 class ChatTestBase(TestCase):
@@ -671,3 +680,54 @@ class LeaderAvatarTests(ChatTestBase):
             leader = Leader.objects.get(pk=self.leader.pk)
             self.assertEqual(leader.avatar_url, leader.avatar.url)
             self.assertTrue(leader.avatar_url.startswith(settings.MEDIA_URL))
+
+
+class AnonBoardTests(TestCase):
+    """anonboard: anyone can post a problem and reply without an account."""
+
+    def test_board_page_renders(self):
+        page = self.client.get(reverse("anon_board"))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "anonboard")
+
+    def test_posting_a_problem_opens_its_thread(self):
+        response = self.client.post(
+            reverse("anon_board"),
+            {"title": "Exam stress", "body": "I cannot sleep before tests."},
+        )
+        post = BoardPost.objects.get()
+        self.assertRedirects(
+            response, reverse("anon_board_post", args=[post.id])
+        )
+        page = self.client.get(reverse("anon_board_post", args=[post.id]))
+        self.assertContains(page, "I cannot sleep before tests.")
+
+    def test_replies_appear_and_bump_the_post(self):
+        post = BoardPost.objects.create(body="First problem")
+        self.client.post(
+            reverse("anon_board_post", args=[post.id]), {"body": "You are not alone."}
+        )
+        self.assertEqual(BoardComment.objects.filter(post=post).count(), 1)
+        page = self.client.get(reverse("anon_board_post", args=[post.id]))
+        self.assertContains(page, "You are not alone.")
+
+    def test_a_blank_problem_is_rejected(self):
+        self.client.post(reverse("anon_board"), {"title": "x", "body": "   "})
+        self.assertEqual(BoardPost.objects.count(), 0)
+
+    def test_every_post_gets_its_own_alias(self):
+        BoardPost.objects.create(body="one")
+        BoardPost.objects.create(body="two")
+        aliases = set(BoardPost.objects.values_list("alias", flat=True))
+        self.assertEqual(len(aliases), 2)
+
+    def test_hidden_posts_are_not_listed_or_reachable(self):
+        post = BoardPost.objects.create(body="hidden problem", is_hidden=True)
+        page = self.client.get(reverse("anon_board"))
+        self.assertNotContains(page, "hidden problem")
+        self.assertEqual(
+            self.client.get(
+                reverse("anon_board_post", args=[post.id])
+            ).status_code,
+            404,
+        )

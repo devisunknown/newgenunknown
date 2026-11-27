@@ -1,0 +1,72 @@
+{% load static chat_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#ffffff"/>
+<title>{{ post.title|default:"anonboard" }} · anylink</title>
+<link rel="icon" href="{% static 'secret/favicon.svg' %}" type="image/svg+xml"/>
+{% include "partials/pwa_head.html" %}
+<link rel="stylesheet" href="{% static 'secret/app.css' %}"/>
+{% include "partials/theme_boot.html" %}
+</head>
+<body class="app-page">
+<div class="app">
+  <header class="app-header">
+    <a class="board-back" href="{% url 'anon_board' %}" aria-label="Back to the board">
+      {% icon "arrow-left" 18 %}
+    </a>
+    <div class="app-header__titles">
+      <h1 class="app-title">anonboard</h1>
+      <p class="app-sub">No. {{ post.number }}</p>
+    </div>
+    <div class="header-actions">
+      {% include "partials/theme_toggle.html" %}
+    </div>
+  </header>
+
+  <main class="screen">
+    <article class="board-post board-post--op">
+      <div class="board-post__head">
+        <span class="board-alias">{{ post.alias }}</span>
+        <span class="board-time">{{ post.created_at|clock12 }}</span>
+      </div>
+      {% if post.title %}<h2 class="board-title">{{ post.title }}</h2>{% endif %}
+      <p class="board-body">{{ post.body|linebreaksbr }}</p>
+    </article>
+
+    <div class="board-list">
+      {% for comment in comments %}
+        <article class="board-post board-post--reply" id="c-{{ comment.id }}">
+          <div class="board-post__head">
+            <span class="board-alias">{{ comment.alias }}</span>
+            <span class="board-time">{{ comment.created_at|clock12 }}</span>
+          </div>
+          <p class="board-body">{{ comment.body|linebreaksbr }}</p>
+        </article>
+      {% empty %}
+        <p class="board-empty">No replies yet. Be the first to say something kind.</p>
+      {% endfor %}
+    </div>
+
+    <form class="board-compose card" method="post" action="{% url 'anon_board_post' post.id %}">
+      {% csrf_token %}
+      <label class="field-label" for="reply-body">Reply anonymously</label>
+      <textarea id="reply-body" name="body" maxlength="2000" required
+                placeholder="Reply with something useful or supportive">{{ form_body }}</textarea>
+      {% if error %}<p class="board-error">{{ error }}</p>{% endif %}
+      <div class="board-compose__foot">
+        <span class="board-compose__note">Your reply gets its own random name.</span>
+        <button class="btn btn--primary btn--sm" type="submit">
+          {% icon "send" 15 %} Reply
+        </button>
+      </div>
+    </form>
+  </main>
+
+  {% include "partials/anon_nav.html" %}
+</div>
+<script src="{% static 'secret/ui.js' %}" defer></script>
+</body>
+</html>

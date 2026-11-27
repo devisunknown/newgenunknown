@@ -20,15 +20,19 @@ from .models import (
     AbuseReport,
     Anonymous,
     BlockedAlias,
+    BoardComment,
+    BoardPost,
     Conversation,
     Institution,
     Leader,
     Message,
     Room,
 )
+from .randomizers import random_alias
 from .services import (
     broadcast_event,
     broadcast_message,
+    code_attempt_key,
     code_attempt_state,
     conversation_group,
     conversation_payload,
@@ -1428,4 +1432,109 @@ def service_worker(request):
         "text/javascript",
         Service_Worker_Allowed="/",
         Cache_Control="no-cache",
+    )
+
+
+# ---------------------------------------------------------------------------
+# anonboard — anonymous problem board
+# ---------------------------------------------------------------------------
+# No account, no alias persistence: every post and reply gets a fresh random
+# name, so replies cannot be traced back to one device or to each other.  The
+# only throttle key is a hash of the session + device token, which stores no
+# address or user agent.
+
+BOARD_POST_LIMIT = 5
+BOARD_COMMENT_LIMIT = 20
+BOARD_WINDOW_SECONDS = 600
+BOARD_MAX_LENGTH = 2000
+
+
+def _board_rate_key(request) -> str:
+    return code_attempt_key(request)
+
+
+def _board_text(raw: str) -> str:
+    return sanitize_message(raw or "")[:BOARD_MAX_LENGTH]
+
+
+def anon_board(request):
+    """List every visible problem, and take a new one."""
+    error = ""
+    if request.method == "POST":
+        if not rate_limit(
+            f"board:post:{_board_rate_key(request)}",
+            BOARD_POST_LIMIT,
+            BOARD_WINDOW_SECONDS,
+        ):
+            error = "You are posting quickly. Take a breath and try again shortly."
+        else:
+            body = _board_text(request.POST.get("body", ""))
+            title = sanitize_message(request.POST.get("title", ""))[:140]
+            if not body:
+                error = "Write your problem first."
+            else:
+                post = BoardPost.objects.create(
+                    alias=random_alias(), title=title, body=body
+                )
+                return redirect("anon_board_post", post_id=post.id)
+
+    posts = (
+        BoardPost.objects.filter(is_hidden=False)
+        .annotate(
+            comment_total=Count(
+                "comments", filter=Q(comments__is_hidden=False)
+            )
+        )
+        .order_by("-bumped_at")[:100]
+    )
+    return render(
+        request,
+        "anon_board.html",
+        {
+            "posts": posts,
+            "error": error,
+            "form_body": request.POST.get("body", "") if request.method == "POST" else "",
+            "form_title": request.POST.get("title", "") if request.method == "POST" else "",
+            "nav_active": "board",
+            **_visitor_nav(request),
+        },
+    )
+
+
+def anon_board_post(request, post_id):
+    """One problem and its replies."""
+    post = get_object_or_404(BoardPost, id=post_id, is_hidden=False)
+    error = ""
+    if request.method == "POST":
+        if not rate_limit(
+            f"board:comment:{_board_rate_key(request)}",
+            BOARD_COMMENT_LIMIT,
+            BOARD_WINDOW_SECONDS,
+        ):
+            error = "You are replying quickly. Take a breath and try again shortly."
+        else:
+            body = _board_text(request.POST.get("body", ""))
+            if not body:
+                error = "Write a reply first."
+            else:
+                comment = BoardComment.objects.create(
+                    post=post, alias=random_alias(), body=body
+                )
+                post.bump()
+                return redirect(
+                    f"{reverse('anon_board_post', args=[post.id])}#c-{comment.id}"
+                )
+
+    comments = post.comments.filter(is_hidden=False)
+    return render(
+        request,
+        "anon_board_post.html",
+        {
+            "post": post,
+            "comments": comments,
+            "error": error,
+            "form_body": request.POST.get("body", "") if request.method == "POST" else "",
+            "nav_active": "board",
+            **_visitor_nav(request),
+        },
     )
