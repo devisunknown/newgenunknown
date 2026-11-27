@@ -1,0 +1,34 @@
+{% load static chat_extras %}
+<div class="sheet install-sheet" id="install-sheet" hidden>
+  <div class="sheet__head">
+    <strong>Keep anylink one tap away</strong>
+    <button class="icon-btn icon-btn--plain" type="button" data-close-sheet aria-label="Close">
+      {% icon "x" 20 %}
+    </button>
+  </div>
+  <div class="sheet__body">
+    <p class="install-sheet__lead">
+      Add anylink to your home screen. It opens like an app — no address bar, no
+      app store, and it stays on this device only.
+    </p>
+
+    <ol class="install-steps" id="install-steps" hidden>
+      <li><span class="install-steps__n">1</span> Tap the <strong>Share</strong> button in your browser.</li>
+      <li><span class="install-steps__n">2</span> Scroll down and choose <strong>Add to Home Screen</strong>.</li>
+      <li><span class="install-steps__n">3</span> Tap <strong>Add</strong>. anylink appears with your apps.</li>
+    </ol>
+
+    <div class="install-sheet__actions">
+      <button class="btn btn--primary btn--full" type="button" id="install-accept">
+        Add to home screen
+      </button>
+      <button class="btn btn--ghost btn--full" type="button" id="install-dismiss">
+        Not now
+      </button>
+    </div>
+    <p class="tiny" style="margin-top:10px;">
+      You can remove it at any time by holding the icon and choosing Remove.
+    </p>
+  </div>
+</div>
+<script src="{% static 'secret/install.js' %}" defer></script>
