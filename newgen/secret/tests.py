@@ -405,3 +405,136 @@ class RoomEntryTests(ChatTestBase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertIsNone(cache.get(_budget_key(self.room)))
+
+
+class SessionStorageTests(ChatTestBase):
+    """How leader and anonymous sessions are actually kept."""
+
+    def test_leader_signin_rotates_a_planted_session_key(self):
+        from django.contrib.sessions.models import Session
+        from django.utils import timezone
+
+        planted = "a" * 32
+        Session.objects.create(
+            session_key=planted,
+            session_data="",
+            expire_date=timezone.now() + timezone.timedelta(days=1),
+        )
+        client = Client()
+        client.cookies[settings.SESSION_COOKIE_NAME] = planted
+        response = client.post(
+            reverse("signin"),
+            {"email": self.leader.email, "password": "password123"},
+        )
+        self.assertEqual(response.status_code, 302)
+
+        used = client.cookies[settings.SESSION_COOKIE_NAME].value
+        self.assertNotEqual(used, planted, "sign-in must not adopt a planted key")
+        self.assertEqual(
+            Session.objects.get(session_key=used).get_decoded()["leader_id"],
+            str(self.leader.id),
+        )
+        # The old key is now an empty session, not an authenticated one.
+        remaining = Session.objects.filter(
+            session_key=planted, expire_date__gt=timezone.now()
+        ).first()
+        if remaining:
+            self.assertNotIn("leader_id", remaining.get_decoded())
+
+    def test_wrong_password_creates_no_leader_session(self):
+        from django.contrib.sessions.models import Session
+
+        client = Client()
+        response = client.post(
+            reverse("signin"),
+            {"email": self.leader.email, "password": "not-the-password"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            Session.objects.filter(
+                session_data__contains="leader_id"
+            ).exists()
+        )
+
+    def test_logout_removes_the_leader_session_row(self):
+        from django.contrib.sessions.models import Session
+
+        self.sign_in(self.leader)
+        key = self.client.cookies[settings.SESSION_COOKIE_NAME].value
+        self.assertTrue(Session.objects.filter(session_key=key).exists())
+
+        self.client.get(reverse("logout"))
+        self.assertFalse(Session.objects.filter(session_key=key).exists())
+        self.assertEqual(
+            self.client.get(reverse("leader_inbox")).status_code, 302
+        )
+
+    def test_deactivated_leader_session_stops_working(self):
+        self.sign_in(self.leader)
+        self.assertEqual(self.client.get(reverse("leader_inbox")).status_code, 200)
+
+        self.leader.is_active = False
+        self.leader.save(update_fields=["is_active"])
+        self.assertEqual(self.client.get(reverse("leader_inbox")).status_code, 302)
+
+        self.leader.is_active = True
+        self.leader.save(update_fields=["is_active"])
+        self.assertEqual(self.client.get(reverse("leader_inbox")).status_code, 200)
+
+    def test_anonymous_session_holds_identity_and_room_grant(self):
+        from django.contrib.sessions.models import Session
+
+        self.enter_room()
+        key = self.client.cookies[settings.SESSION_COOKIE_NAME].value
+        data = Session.objects.get(session_key=key).get_decoded()
+        self.assertEqual(data["room_id"], str(self.room.id))
+        self.assertIn("room_access_at", data)
+        self.assertNotIn("anon_id", data)
+
+        response = self.client.post(
+            reverse("start_chat", args=[self.room.id, self.leader.id])
+        )
+        self.assertEqual(response.status_code, 302)
+        key = self.client.cookies[settings.SESSION_COOKIE_NAME].value
+        data = Session.objects.get(session_key=key).get_decoded()
+        self.assertIn("anon_id", data)
+        self.assertTrue(
+            Anonymous.objects.filter(id=data["anon_id"]).exists()
+        )
+        self.assertTrue(response.cookies.get(settings.ANON_DEVICE_COOKIE))
+
+        # Plain browsing must not rewrite the session row.
+        before = Session.objects.get(session_key=key)
+        before_expiry = before.expire_date
+        self.client.get(reverse("directory"))
+        after = Session.objects.get(session_key=key)
+        self.assertEqual(after.expire_date, before_expiry)
+
+    def test_anonymous_identity_survives_a_lost_session_cookie(self):
+        from django.contrib.sessions.models import Session
+
+        self.enter_room()
+        started = self.client.post(
+            reverse("start_chat", args=[self.room.id, self.leader.id])
+        )
+        conv_id = started["Location"].strip("/").split("/")[-1]
+        device = self.client.cookies[settings.ANON_DEVICE_COOKIE].value
+        Session.objects.all().delete()
+
+        resumed = Client()
+        resumed.cookies[settings.ANON_DEVICE_COOKIE] = device
+        self.assertEqual(
+            resumed.get(reverse("anon_chat", args=[conv_id])).status_code, 200
+        )
+
+        stranger = Client()
+        self.assertEqual(
+            stranger.get(reverse("anon_chat", args=[conv_id])).status_code, 404
+        )
+
+    def test_leader_session_does_not_open_anonymous_screens(self):
+        self.sign_in(self.leader)
+        self.assertEqual(
+            self.client.get(reverse("anon_chat", args=[self.conversation.id])).status_code,
+            404,
+        )

@@ -71,7 +71,11 @@ def get_anonymous_for_request(request, create=False):
             device_token_hash=hash_token(token)
         ).first()
         if anonymous:
-            request.session["anon_id"] = str(anonymous.id)
+            # Only touch the session when it actually needs it: assigning the
+            # same value marks it modified, which rewrites the row and pushes
+            # its expiry on every single request.
+            if request.session.get("anon_id") != str(anonymous.id):
+                request.session["anon_id"] = str(anonymous.id)
             return anonymous
 
     anon_id = request.session.get("anon_id")

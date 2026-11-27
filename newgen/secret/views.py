@@ -646,6 +646,9 @@ def leader_signin(request):
         password = request.POST.get("password") or ""
         leader = Leader.objects.filter(email__iexact=email, is_active=True).first()
         if leader and leader.check_password(password):
+            # A new key on sign-in: a session id planted before login must not
+            # become the id this leader is authenticated under.
+            request.session.cycle_key()
             request.session["leader_id"] = str(leader.id)
             return redirect("leader_inbox")
         return render(
